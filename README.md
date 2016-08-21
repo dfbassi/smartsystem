@@ -1,2 +1,9 @@
 # smartsystem
-Smart: a system for symbolic expression processing
+
+SMARTS
+    Symbolic 
+    Manipulation 
+    and 
+    Replacement 
+    Transformation
+    System
