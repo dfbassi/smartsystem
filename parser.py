@@ -66,20 +66,19 @@ def parseList(tk) :
 
 def parseLimSeq(dl,tk) :
     if tk.val()== dl :      # Open delimiter comparison
-        tk.popVal()        # Delimiter is popped
-            e = parseSeq(tk)
-                tk.popVal()
-                    return e
+        tk.popVal()         # Delimiter is popped
+        e = parseSeq(tk)
+        tk.popVal()
+        return e
 
 def parseSeq(tk):
     return parseSeqTail(expr.Compound(parseExpr(tk)),tk)
 
 def parseSeqTail(e,tk):
     while tk.val()== ',' :  # Delimiter comparison
-        tk.popVal()       # Delimiter is popped
-            e.append(parseExpr(tk))
+        tk.popVal()         # Delimiter is popped
+        e.append(parseExpr(tk))
     return e
 
-def parseGroup(tk):
 
 
