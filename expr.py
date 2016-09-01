@@ -30,6 +30,8 @@ class Number(Expr):
         else:
             self.val = int(value)
             self.typ = "Integer"
+    def show(self):
+        return str(self.val)
 
 class Symbol(Expr):
     typ = "Symbol"
