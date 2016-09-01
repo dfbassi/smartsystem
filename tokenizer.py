@@ -48,18 +48,18 @@ class Token(object):
             else :
                 self.q.enqueue((t,'oper'))      # Rest of tokens are operators
 
-def val(self):                      # Actual token (top)
-    if not self.q.isEmpty() :
-        return self.q.top()[0]
+    def val(self):                      # Actual token (top)
+        if not self.q.isEmpty() :
+            return self.q.top()[0]
     
-def typ(self):                      # Actual token type
-    if not self.q.isEmpty() :
-        return self.q.top()[1]
+    def typ(self):                      # Actual token type
+        if not self.q.isEmpty() :
+            return self.q.top()[1]
 
-def popVal(self):                   # Top token is popped and given
-    if not self.q.isEmpty() :
-        return self.q.dequeue()[0]
+    def popVal(self):                   # Top token is popped and given
+        if not self.q.isEmpty() :
+            return self.q.dequeue()[0]
     
-def size(self):
-    return self.q.size()
+    def size(self):
+        return self.q.size()
 
