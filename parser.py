@@ -14,18 +14,20 @@
 import expr
 
 def parseExpr(tk):
-    e = parsePrim(tk)                   # try parsing a primitive type
-    if e :
-        return e
-    e = parseSymb(tk)                   # try parsing a symbol type
-    if e :
-        return e
-    if tk.val()== '(' :                 # try parsing a group expression
-        tk.popVal()                     # Delimiter is popped
-        e = parseExpr(tk)               # Parsing expression
-        tk.popVal()                     # Delimiter is popped: ')'
-        return e
-
+    while True:
+        e = parsePrim(tk)               # try parsing a primitive type
+        if e :
+            break
+        e = parseSymb(tk)               # try parsing a symbol type
+        if e :
+            break
+        e = parseGroup(tk)              # try parsing a group type
+        if e :
+            break
+        return None
+    return parseInfix(e,tk)             # try parsing an infix expression
+                                        # if no infix, e is returned
+  
 def parsePrim(tk):
     if tk.typ() == "number" :           # try parsing a number
         return expr.Number(tk.popVal())
@@ -59,6 +61,25 @@ def parseSymbTail(h,tk) :               # h is the head, so far
         return parseSymbTail(e,tk)
     return h                            # symbol tail nil: returning head (h)
 
+def parseGroup(tk): 
+    if tk.val()== '(' :                 # try parsing an open parenthesis
+        tk.popVal()                     # delimiter '(' is popped
+        e = parseExpr(tk)               # parsing expression
+        if e and tk.val()== ')' :       # parsing 
+            tk.popVal()                 # delimiter ')' is popped
+            return e
+ 
+def parseInfix(f,tk):                   # f contains first expression
+    if tk.typ() != "oper" :             # no infix
+        return f
+    e = expr.Symbol(tk.popVal())        # Infix: parsed as a Symbol
+    g = parseExpr(tk)                   # try parsing next expression
+    if g :
+        e = expr.Compound(e)            # put as head compound expression
+        e.append(f)                     # adding first expression
+        e.append(g)                     # adding second  expression
+        return e           
+         
 def parseList(tk) :
     e = parseLimSeq('{',tk)             # try parsing a list (starting {)
     if e :

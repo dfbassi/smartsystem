@@ -29,8 +29,8 @@ class Token(object):
     name   = r'[a-zA-Z$][\w-]*'                 # Regular expression for differen tokens
     strg   = r'\"[^\"]*\"'
     number = r'\d+\.?\d*'
-    oper   = r'[-^+*/!]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}'
-    delim  = r'[(){},;]|\[{1,2}|\]{1,2}'
+    oper   = r'[-^+*/!;]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}'
+    delim  = r'[(){},]|\[{1,2}|\]{1,2}'
     tokregex = name +"|"+strg+"|"+number+"|"+delim+"|" + oper
     
     def __init__(self,input):                   # input is string to be parsed
