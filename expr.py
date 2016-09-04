@@ -21,6 +21,8 @@ class Expr(object):
         return self.val
     def rexpr(rexp):
         Expr.re = pre.regex(rexp)
+    def isCompound(self):
+        return self.typ == "Compound"
 
 class Number(Expr):
     def __init__(self,value):
@@ -47,6 +49,10 @@ class Compound(Expr):
         self.val.append(value)
     def prepend(self,value):
         self.val.insert(0,value)
+    def insert(self,value,pos):
+        self.val.insert(pos,value)
+    def head(self):
+        return self.val[0]
     def show(self):
         return show(Expr.re, map(lambda e: e.show(),self.val))
 

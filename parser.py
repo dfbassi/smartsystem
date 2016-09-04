@@ -75,6 +75,9 @@ def parseInfix(f,tk):                   # f contains first expression
     e = expr.Symbol(tk.popVal())        # Infix: parsed as a Symbol
     g = parseExpr(tk)                   # try parsing next expression
     if g :
+        if g.isCompound() and g.head().val == e.val :
+            g.insert(f,1)               # inserting first expression
+            return g
         e = expr.Compound(e)            # put as head compound expression
         e.append(f)                     # adding first expression
         e.append(g)                     # adding second  expression
