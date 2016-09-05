@@ -23,6 +23,8 @@ class Expr(object):
         Expr.re = pre.regex(rexp)
     def isCompound(self):
         return self.typ == "Compound"
+    def tree(self):
+        return (self.show(),len(self.show()))
 
 class Number(Expr):
     def __init__(self,value):
@@ -55,6 +57,14 @@ class Compound(Expr):
         return self.val[0]
     def show(self):
         return show(Expr.re, map(lambda e: e.show(),self.val))
+    def tree(self):
+        s = map(lambda e: e.tree(),self.val)
+        w = sum(map(lambda x:x[1],s[1:])) + len(s)-2
+        print " w, s : ",w,s
+        if w < s[0][1] and type(s[0][0])== str:
+            s.append( (" "*(s[0][1]-w-1),s[0][1]-w-1) )
+            w = s[0][1]
+        return (s,w)
 
 class String(Expr):
     typ = "String"
@@ -106,4 +116,44 @@ def showitem(item,shwlis):
             return shwlis[shwlis[0]-1]
     else :
         return item                 # item copied to output
+
+def printTree(tr,lev=1):
+    print level(tr,0)
+    for i in range(1,lev):
+        print line(tr,i)
+        print level(tr,i)
+
+def level(tr,lev):
+    if type(tr[0]) == str:              # single node: leaf 
+        if lev == 0:                    # current level
+            return tr[0]                # value of the node
+        return " "*tr[1]                # this is below leaf: empty
+    lis = tr[0]                         # list of nodes
+    if type(lis[0][0]) == str:          # first node is head, rest are children
+        if lev == 0:                    # head is simple
+            return lis[0][0]+" "*(tr[1]-len(lis[0][0]))         # head + padding
+        return " ".join(map(lambda x: level(x,lev-1), lis[1:])) # rest
+    s = level(lis[0], lev)
+    if lev == 0:
+        return s + " "*(tr[1]+1)
+    return s +" " + " ".join(map(lambda x: level(x,lev-1), lis[1:]))        
             
+def line(tr,lev):
+    if type(tr[0]) == str:              # single node: leaf 
+        if lev == 0:                    # current level
+            return '_'*tr[1]            # lines here
+        return ' '*tr[1]                # this is below leaf: space
+    lis = tr[0]                         # list of nodes
+    if type(lis[0][0]) == str:          # first node is head, rest are children
+        if lev == 0:                    # head is simple
+            return '_'*tr[1]            # lines here
+        s = map(lambda x: line(x,lev-1), lis[1:]) 
+        if s[0][0] == '_':
+            s[-1]=' '*(len(s[-1])-1)
+            return '|'+'_'.join(s)
+        return " ".join(s)
+    s = line(lis[0], lev)
+    if lev == 0:
+        return s + " "*(tr[1]+1)
+    return s +" " + '_'.join(map(lambda x: line(x,lev-1), lis[1:]))        
+     
