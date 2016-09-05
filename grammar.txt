@@ -1,7 +1,10 @@
-expr      = prim | symb |'(', expr, ')';
-symb      = symbFirst | symb,('[', seq,']' | '[[', seq, ']]')
-symbFirst = name | '{', seq, '}' ;
+expr      = num | string | symb | group | infix ;
+symb      = name | list | symb, ( argList | parList ) ;
+list      = '{',  seq, '}' ;
+argList   = '[',  seq, ']' ;
+parList   = '[[', seq, ']]';
 seq       = nil | expr, seqTail ;
 seqTail   = nil | ',', expr, seqTail ;
-prim      = number | string ;
+group     = '(' , expr, ')';
+infix     = expr, oper, expr ;
 number    = integer| float  ;
