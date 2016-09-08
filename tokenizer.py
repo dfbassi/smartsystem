@@ -26,16 +26,24 @@ class Queue:                            # A queue is used to process tokens
         return self.items[-1]
 
 class Token(object):
-    name   = r'[a-zA-Z$][\w]*'                 # Regular expression for differen tokens
+    name   = r'[a-zA-Z$][\w]*'                 # Regular expression for different tokens
     strg   = r'\"[^\"]*\"'
     number = r'\d+\.?\d*'
     oper   = r'[-^+*/!;]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}'
     delim  = r'[(){},]|\[{1,2}|\]{1,2}'
-    tokregex = name +"|"+strg+"|"+number+"|"+delim+"|" + oper
+    alltok = name +"|"+strg+"|"+number+"|"+delim+"|" + oper
+    preced =  {";":1, "=":3, ":=":3, "+=":7, "-=":7, "*=":7, "/=":7,"~~":11,\
+                "||":21,"&&":23,"!":24,"==":28,"!=":28,"<":28,"<=":28,">":28,\
+                ">=":28, "+":31,"-":31, "*":38, "" :38, "/":39,"^":45,"<>":46}
+    prefix = ["-","!"]
+    infix  = [";","|", "=", ":=", "+=", "-=", "*=", "/=","~~","||","&&", \
+              "==","===","!=","<","<=",">",">=","+","-","*", "/",".","^","<>"]
+    postfix= ["!","&"]
+    leftdel= ["(","{",r"[",r"[["]
     
     def __init__(self,input):                   # input is string to be parsed
         self.q = Queue()                        # a queue is used
-        self.tokens = re.findall(self.tokregex,input)
+        self.tokens = re.findall(self.alltok,input)
         for t in self.tokens:
             if re.match('[a-zA-Z$]', t[0]):     # Id name starts with letter
                 self.q.enqueue((t,'name'))
@@ -43,23 +51,22 @@ class Token(object):
                 self.q.enqueue((t,'number'))
             elif re.match(r'\"', t[0]):         # String starts with "
                 self.q.enqueue((t[1:-1],'string'))
-            elif re.match(r'[(){},\[\]]', t[0]):
+            elif re.match(r'[(){},\[\]]', t[0]):# delimiter
                 self.q.enqueue((t,'delim'))
-            else :
-                self.q.enqueue((t,'oper'))      # Rest of tokens are operators
-
-    def val(self):                      # Actual token (top)
+            elif t in self.infix:               # infix operator
+                self.q.enqueue((t,'infix'))
+            elif t in self.pefix:               # prefix operator
+                self.q.enqueue((t,'prefix'))
+            elif t in self.postfix:             # postfix operator
+                self.q.enqueue((t,'postfix'))
+    def val(self):                      # Actual token (top of queue)
         if not self.q.isEmpty() :
             return self.q.top()[0]
-    
     def typ(self):                      # Actual token type
         if not self.q.isEmpty() :
             return self.q.top()[1]
-
     def popVal(self):                   # Top token is popped and given
         if not self.q.isEmpty() :
-            return self.q.dequeue()[0]
-    
+            return self.q.dequeue()[0] 
     def size(self):
         return self.q.size()
-

@@ -108,7 +108,7 @@ def parseGroup(tk):
         return e
             
 def parseInfix(f,tk):                   # f contains first expression
-    if tk.typ() != "oper" :             # no infix
+    if tk.typ() != "infix" :            # no infix
         return f
     e = expr.Symbol(tk.popVal())        # Infix: parsed as a Symbol
     g = parseExpr(tk)                   # try parsing next expression
