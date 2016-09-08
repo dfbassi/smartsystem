@@ -17,36 +17,45 @@ class Expr(object):
     re = pre.regex(r"$\[($(,$)*)?\]")
     def __init__(self,value):
         self.val = value
+    def typ(self):
+        return "Expression"
     def show(self):
         return self.val
     def rexpr(rexp):
         Expr.re = pre.regex(rexp)
     def isCompound(self):
-        return self.typ == "Compound"
+        return self.typ() == "Compound"
     def tree(self):
         return (self.show(),len(self.show()))
-
-class Number(Expr):
+        
+class Integer(Expr):
     def __init__(self,value):
-        if '.' in value :               # test for float
-            self.val = float(value)
-            self.typ = "Real"
-        else:
-            self.val = int(value)
-            self.typ = "Integer"
+        self.val = int(value)
+    def typ(self):
+        return "Integer"
+    def show(self):
+        return str(self.val)
+  
+class Real(Expr):
+    def __init__(self,value):
+        self.val = float(value)
+    def typ(self):
+        return "Real"
     def show(self):
         return str(self.val)
 
 class Symbol(Expr):
-    typ = "Symbol"
+    def typ(self):
+        return "Symbol"
 
 class Compound(Expr):
-    typ = "Compound"
     def __init__(self,value):
         if value:
             self.val = [value]
         else:
             self.val = []
+    def typ(self):
+        return "Compound"   
     def append(self,value):
         self.val.append(value)
     def prepend(self,value):
@@ -66,12 +75,13 @@ class Compound(Expr):
         return (s,w)
 
 class String(Expr):
-    typ = "String"
     def show(self):
         return '"'+self.val+'"'     # explicit display of braces for string
+    def typ(self):
+        return "String" 
         
 def show(relis,shwlis) :
-    if relis == [] :              # nothing to do
+    if relis == [] :                # nothing to do
         return None
     if type(shwlis[0]) == str:
         shwlis.insert(0,1)

@@ -33,7 +33,9 @@ def parseExpr(tk):
 
 def parseNumber(tk):
     if tk.typ() == "number" :           # parsing a number
-        return expr.Number(tk.popVal())
+        if '.' in tk.val() :            # test for float
+            return expr.Real(tk.popVal())
+        return expr.Integer(tk.popVal())
         
 def parseString(tk):
     if tk.typ() == "string" :           # parsing a string
