@@ -130,4 +130,10 @@ def parseInfix(tk,f,pr):                # f contains first expression
     print "Syntax error, missing expression afer: ", +op.val         
     return f
 
+def getInfixPrior(tk,pr):
+    if tk.impliedProd() and expr.prior("*")>pr:
+        print "try implied * before :",tk.val()
+        return expr.Symbol("*")         # getting product with empty token
+    if tk.typ() == "infix" and expr.prior(tk.val())>pr:
+        return expr.Symbol(tk.popVal()) # getting infix (as Symbol)
 
