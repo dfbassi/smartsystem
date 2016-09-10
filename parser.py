@@ -107,33 +107,28 @@ def parseGroup(tk):
             print "Syntax error, parsing (..."
         return e
             
-def parseInfix(tk,f,pr):                # f contains first expression
-    print "inFix: ",tk.val()," ",f.show()," ",pr
-    if tk.impliedProd() and expr.prior("*")>pr:
-        op = expr.Symbol("*")           # empty token is considered as product
-        print "try implied * before :",tk.val()
-    elif tk.typ() == "infix" and expr.prior(tk.val())>pr:
-        op = expr.Symbol(tk.popVal())   # infix: parsed as a Symbol
-    else :
-        return f                        # no infix is processed, returning
-    pr = expr.prior(op.val)             # operator priority
-    s = parseExpr(tk,pr)                # try parsing second expression
-    print "op,f,s: ", op.show(),",",f.show(),",",s.show()
-    if s :
-        if f.isCompound() and f.head().val==op.val and op.isAssoc():
-            e = f
-        else :          
-            e = expr.Compound(op)       # put as head compound expression
-            e.append(f)                 # adding first expression  
-        e.append(s)                     # adding second  expression
-        return parseInfix(tk,e,0)
-    print "Syntax error, missing expression afer: ", +op.val         
-    return f
+def parseInfix(tk,e,pr):                # e contains possible first expression
+    print "inFix: ",tk.val()," ",e.show()," ",pr
+    op = getInfixPrior(tk,pr+1)         # getting next operator with better priority
+    while op :
+        pr = expr.prior(op.val)             # operator priority
+        s = parseExpr(tk,pr)                # try parsing second expression
+        print "op,f,s: ", op.show(),",",e.show(),",",s.show()
+        if s :
+            if e.head().val!=op.val or not op.isAssoc():
+                f = e                       # e is first expression     
+                e = expr.Compound(op)       # op is head of compound expression
+                e.append(f)                 # adding first expression  
+            e.append(s)                     # adding second  expression
+        else :
+            print "Syntax error, missing expression afer: "+op.val              
+        op = getInfixPrior(tk,pr)           # getting next operator with priority
+    return e
 
 def getInfixPrior(tk,pr):
-    if tk.impliedProd() and expr.prior("*")>pr:
+    if tk.impliedProd() and expr.prior("*") >= pr:
         print "try implied * before :",tk.val()
         return expr.Symbol("*")         # getting product with empty token
-    if tk.typ() == "infix" and expr.prior(tk.val())>pr:
+    if tk.typ() == "infix" and expr.prior(tk.val()) >= pr:
         return expr.Symbol(tk.popVal()) # getting infix (as Symbol)
 
