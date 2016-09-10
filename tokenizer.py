@@ -32,15 +32,15 @@ class Token(object):
     oper   = r'[-^+*/!;]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}'
     delim  = r'[(){},]|\[{1,2}|\]{1,2}'
     alltok = name +"|"+strg+"|"+number+"|"+delim+"|" + oper
-    preced =  {";":1, "=":3, ":=":3, "+=":7, "-=":7, "*=":7, "/=":7,"~~":11,\
-                "||":21,"&&":23,"!":24,"==":28,"!=":28,"<":28,"<=":28,">":28,\
-                ">=":28, "+":31,"-":31, "*":38, "" :38, "/":39,"^":45,"<>":46}
     prefix = ["-","!"]
     infix  = [";","|", "=", ":=", "+=", "-=", "*=", "/=","~~","||","&&", \
               "==","===","!=","<","<=",">",">=","+","-","*", "/",".","^","<>"]
     postfix= ["!","&"]
-    leftdel= ["(","{",r"[",r"[["]
-    
+    ledelim= ["(","{",r"[",r"[["]
+    ridelim= [")","}",r"]",r"]]"]
+    opers  = postfix+infix+prefix
+    nonprod= opers+ridelim+[',']
+     
     def __init__(self,input):                   # input is string to be parsed
         self.q = Queue()                        # a queue is used
         self.tokens = re.findall(self.alltok,input)
@@ -70,3 +70,5 @@ class Token(object):
             return self.q.dequeue()[0] 
     def size(self):
         return self.q.size()
+    def impliedProd(self):
+        return not self.q.isEmpty() and self.val() not in self.nonprod

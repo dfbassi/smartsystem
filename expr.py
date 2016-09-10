@@ -15,6 +15,11 @@ import parseregex as pre
 
 class Expr(object):
     re = pre.regex(r"$\[($(,$)*)?\]")
+    preced =  {";":1, "=":3, ":=":3, "+=":7, "-=":7, "*=":7, "/=":7,"~~":11,\
+                "||":21,"&&":23,"!":24,"==":28,"!=":28,"<":28,"<=":28,">":28,\
+                ">=":28, "+":31,"-":31, "*":38, "" :38, "/":39,"^":45,"<>":46}
+    assoc = [";", "||", "&&","==","<","<=",">",">=", "+", "*","<>"]
+ 
     def __init__(self,value):
         self.val = value
     def typ(self):
@@ -27,6 +32,12 @@ class Expr(object):
         return self.typ() == "Compound"
     def tree(self):
         return (self.show(),len(self.show()))
+    def prior(self,v):
+        if v not in self.preced:
+            return 100
+        return self.preced[v]
+    def isAssoc(self):
+        return self.val in self.assoc
         
 class Integer(Expr):
     def __init__(self,value):
@@ -43,6 +54,12 @@ class Real(Expr):
         return "Real"
     def show(self):
         return str(self.val)
+
+class String(Expr):
+    def show(self):
+        return '"'+self.val+'"'     # explicit display of braces for string
+    def typ(self):
+        return "String"
 
 class Symbol(Expr):
     def typ(self):
@@ -73,12 +90,6 @@ class Compound(Expr):
             s.append( (" "*(s[0][1]-w-1),s[0][1]-w-1) )
             w = s[0][1]
         return (s,w)
-
-class String(Expr):
-    def show(self):
-        return '"'+self.val+'"'     # explicit display of braces for string
-    def typ(self):
-        return "String" 
         
 def show(relis,shwlis) :
     if relis == [] :                # nothing to do

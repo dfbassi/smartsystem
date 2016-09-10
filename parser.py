@@ -13,7 +13,7 @@
 """
 import expr
 
-def parseExpr(tk):
+def parseExpr(tk,pr=0):
     while True:
         e = parseNumber(tk)             # try parsing a number
         if e :
@@ -28,7 +28,7 @@ def parseExpr(tk):
         if e :
             break
         return None
-    return parseInfix(e,tk)             # try parsing an infix expression
+    return parseInfix(tk,e,pr)          # try parsing an infix expression
                                         # if no infix, e is returned
 
 def parseNumber(tk):
@@ -50,31 +50,31 @@ def parseSymb(tk):
         if e :
             break
         return None        
-    return parseSymbTail(e,tk)          # try parsing symbol tail
+    return parseSymbTail(tk,e)          # try parsing symbol tail
 
 def parseName(tk):
     if tk.typ() == "name" :             # parsing symbol name
         return expr.Symbol(tk.popVal())
 
 def parseList(tk) :
-    e = parseLimSeq('{','}',tk)         # try parsing a list:{e1,e2,..}
+    e = parseLimSeq(tk,'{','}')         # try parsing a list:{e1,e2,..}
     if e :
         e.prepend(expr.Symbol("List"))  # converting into expression List
         return e
 
-def parseSymbTail(h,tk) :               # h is the head, so far
-    e = parseLimSeq('[',']',tk)         # try parsing argument list: [e1,e2,..]
+def parseSymbTail(tk,h) :               # h is the head, so far
+    e = parseLimSeq(tk,'[',']')         # try parsing argument list: [e1,e2,..]
     if e :                              # is compound expresion
         e.prepend(h)
-        return parseSymbTail(e,tk)      # try parsing symbol tail (current exp)
-    e = parseLimSeq('[[',']]',tk)       # try parsing part list: [[n1,n2,...]]
+        return parseSymbTail(tk,e)      # try parsing symbol tail (current exp)
+    e = parseLimSeq(tk,'[[',']]')       # try parsing part list: [[n1,n2,...]]
     if e :
         e.prepend(h)
         e.prepend(expr.Symbol("Part"))
-        return parseSymbTail(e,tk)      # try parsing symbol tail (current exp)
+        return parseSymbTail(tk,e)      # try parsing symbol tail (current exp)
     return h                            # no tail: returning head (h)
 
-def parseLimSeq(left,right,tk) :
+def parseLimSeq(tk,left,right) :
     if tk.val()== left :                # comparing with left delimiter
         tk.popVal()                     # left delimiter is popped
         e = parseSeq(tk)                # parsing a sequence
@@ -85,16 +85,16 @@ def parseLimSeq(left,right,tk) :
         return e                        # sequence returned
         
 def parseSeq(tk):
-    return parseSeqTail(expr.Compound(parseExpr(tk)),tk)
+    return parseSeqTail(tk,expr.Compound(parseExpr(tk)))
 
-def parseSeqTail(e,tk):
+def parseSeqTail(tk,e):
     while tk.val()== ',' :              # delimiter comparison
         tk.popVal()                     # delimiter is popped
         f = parseExpr(tk)               # try parsing an expression
         if f :
             e.append(f)                 # item expression is appended
         else :
-            print "Syntax error, parsing sequience, missing expression"
+            print "Syntax error, parsing sequence, missing expression"
     return e 
 
 def parseGroup(tk): 
@@ -107,21 +107,27 @@ def parseGroup(tk):
             print "Syntax error, parsing (..."
         return e
             
-def parseInfix(f,tk):                   # f contains first expression
-    if tk.typ() != "infix" :            # no infix
-        return f
-    e = expr.Symbol(tk.popVal())        # Infix: parsed as a Symbol
-    g = parseExpr(tk)                   # try parsing next expression
-    if g :
-        if g.isCompound() and g.head().val == e.val :
-            g.insert(f,1)               # inserting first expression
-            return g
-        e = expr.Compound(e)            # put as head compound expression
-        e.append(f)                     # adding first expression
-        e.append(g)                     # adding second  expression
-        return e
+def parseInfix(tk,f,pr):                # f contains first expression
+    print "inFix: ",tk.val()," ",f.show()," ",pr
+    if tk.impliedProd() and f.prior("*")>pr:
+        op = expr.Symbol("*")           # empty token is considered as product
+        print "try implied * before :",tk.val()
+    elif tk.typ() == "infix" and f.prior(tk.val())>pr:
+        op = expr.Symbol(tk.popVal())   # infix: parsed as a Symbol
     else :
-        print "Syntax error, missing expression afer: "+e.val         
+        return f                        # no infix is processed, returning
+    pr = op.prior(op.val)               # operator priority
+    s = parseExpr(tk,pr)                # try parsing second expression
+    print "op,f,s: ", op.show(),",",f.show(),",",s.show()
+    if s :
+        if f.isCompound() and f.head().val==op.val and op.isAssoc():
+            e = f
+        else :          
+            e = expr.Compound(op)       # put as head compound expression
+            e.append(f)                 # adding first expression  
+        e.append(s)                     # adding second  expression
+        return parseInfix(tk,e,pr)
+    print "Syntax error, missing expression afer: ", +op.val         
     return f
         
 
