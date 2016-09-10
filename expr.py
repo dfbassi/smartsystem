@@ -31,6 +31,8 @@ class Expr(object):
         return (self.show(),len(self.show()))
     def isAssoc(self):
         return self.val in self.assoc
+    def head(self):
+        return Symbol(self.typ())
         
 class Integer(Expr):
     def __init__(self,value):
