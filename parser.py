@@ -109,14 +109,14 @@ def parseGroup(tk):
             
 def parseInfix(tk,f,pr):                # f contains first expression
     print "inFix: ",tk.val()," ",f.show()," ",pr
-    if tk.impliedProd() and f.prior("*")>pr:
+    if tk.impliedProd() and expr.prior("*")>pr:
         op = expr.Symbol("*")           # empty token is considered as product
         print "try implied * before :",tk.val()
-    elif tk.typ() == "infix" and f.prior(tk.val())>pr:
+    elif tk.typ() == "infix" and expr.prior(tk.val())>pr:
         op = expr.Symbol(tk.popVal())   # infix: parsed as a Symbol
     else :
         return f                        # no infix is processed, returning
-    pr = op.prior(op.val)               # operator priority
+    pr = expr.prior(op.val)             # operator priority
     s = parseExpr(tk,pr)                # try parsing second expression
     print "op,f,s: ", op.show(),",",f.show(),",",s.show()
     if s :
@@ -126,10 +126,8 @@ def parseInfix(tk,f,pr):                # f contains first expression
             e = expr.Compound(op)       # put as head compound expression
             e.append(f)                 # adding first expression  
         e.append(s)                     # adding second  expression
-        return parseInfix(tk,e,pr)
+        return parseInfix(tk,e,0)
     print "Syntax error, missing expression afer: ", +op.val         
     return f
-        
-
 
 
