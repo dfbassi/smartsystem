@@ -29,6 +29,13 @@ class Expr(object):
         return self.typ() == "Compound"
     def tree(self):
         return (self.show(),len(self.show()))
+    def printTree(self):
+        tr = self.tree()
+        lev = depth(tr)
+        print level(tr,0)
+        for i in range(1,lev):
+            print line(tr,i)
+            print level(tr,i)        
     def isAssoc(self):
         return self.val in self.assoc
     def head(self):
@@ -131,14 +138,6 @@ def showitem(item,shwlis):
             return shwlis[shwlis[0]-1]
     else :
         return item                 # item copied to output
-
-def tree(exp):
-    tr = exp.tree()
-    lev = depth(tr)
-    print level(tr,0)
-    for i in range(1,lev):
-        print line(tr,i)
-        print level(tr,i)
 
 def level(tr,lev):
     if type(tr[0]) == str:      # single node: leaf 
