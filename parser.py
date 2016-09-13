@@ -113,10 +113,10 @@ def parseInfix(tk,e,pr):                # e contains possible first expression
     while op :
         pr = expr.prior(op.val)             # operator priority
         s = parseExpr(tk,pr)                # try parsing second expression
-        print "op,f,s: ", op.show(),",",e.show(),",",s.show()
         if s :
+            print "op,f,s: ", op.show(),",",e.show(),",",s.show()
             if e.head().val!=op.val or not op.isAssoc():
-                f = e                       # e is first expression     
+                f = e                       # e becomes first expression     
                 e = expr.Compound(op)       # op is head of compound expression
                 e.append(f)                 # adding first expression  
             e.append(s)                     # adding second  expression
