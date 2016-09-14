@@ -12,19 +12,21 @@ Created on Sat Sep 10 23:29:55 2016
     
 """
 class Context(object):
-    def __init__(self,names=["System`"]):
+    def __init__(self,names=["System`"]): # default context is System
         self.ctxcnt = 0         # counter for contexts
         self.symcnt = 0         # counter for symbols
         self.ctxnam = {}        # table of context names
         self.ctxcod = {}        # table of context codes
         self.symtab = {}        # table for symbol object: symtab[cod] -> sym
         self.symcod = {}        # table for symbol codes: symcod[name] -> [cods]
+        self.infxcod= {}        # table for infix codes: infix[symbol] -> cod
+        self.prfxcod= {}        # table for prefix codes: prefix[symbol] -> cod
         if type(names) == str:
             names = [names]
         for n in names:         # add context(s)
             self.context(n)
         self.setCur(names[0])
-        self.ctxlis = []
+        self.ctxlis = [self.currnum]
               
     def context(self,nam):
         if nam not in self.ctxcod:
@@ -45,13 +47,12 @@ class Context(object):
 
     def info(self,q=0):
         s = [ "Current Context: "+ self.current]
-        s.append("Context Search : "+" ".join([self.ctxnam[i] for i in self.ctxlis]))
-        s.append("All Contexts   : "+" ".join([self.ctxnam[i+1] for i in range(self.ctxcnt)]))
+        s.append("Context Search : "+",".join([self.ctxnam[i] for i in self.ctxlis]))
+        s.append("Context Table  : "+",".join([self.ctxnam[i+1] for i in range(self.ctxcnt)]))
         if q>=1:
-            s.append("Symbols defined : "+str(self.symcnt))
+            s.append("Number of symbols : "+str(self.symcnt))
         if q>=2:
-            s += map(lambda n : str(n)+" "+self.symtab[n].name+" "+str(self.symtab[n].ctx),\
-            range(1,self.symcnt+1))
+            s += [str(n)+" : "+self.symtab[n].show(q) for n in range(1,self.symcnt+1)]
         return s
 
     def numsym(self,fullname):                  # find symbol number
@@ -80,42 +81,85 @@ class Context(object):
     def delsym(self,num):               # remove symbol
         nam = self.symtab[num].name
         self.symcod[nam].remove(num)    # remove reference
-        self.symtab[num].flg.on('del')  # set del flag
-     
+        self.symtab[num].flg.on(delete) # set delete flag
+    
+    def infix(self,name,oper,pre) :     # add infix operator to symbol
+        num = self.numsym(name)
+        self.infxcod[oper] = num
+        self.symtab[num].operator(oper,pre,prefix)
+        
+    def prefix(self,name,oper,pre) :    # add prefix operator to symbol
+        num = self.numsym(name)
+        self.prfxcod[num] = oper
+        self.symtab[num].operator(oper,pre,infix)
+         
 class Symbol(object):
-    def __init__(self,nam,ct):
+    def __init__(self,nam,ct,f=0):
         self.name = nam             # symbol name
         self.ctx  = ct              # context number
-        self.flg  = Flag()          # flag (default value)
+        self.flg  = Flag(f)         # flag (default value)
+        
+    def operator(self,op,pr,f):     # 
+        self.opr = op
+        self.pre = pr
+        self.flg.on(f|preced)
+
     def show(self,t=0):
         s = self.name
         if t>= 1 :
-            s += " ctx: "+str(self.ctx)
+            s += " "*(10 -len(self.name))+"("+str(self.ctx)+")"
+            if self.flg.bit(preced):
+                s += " op: "+self.opr+","+str(self.pre)
+                if self.flg.bit(infix):
+                    s +=",infix "
+                else :
+                    s +=",prefix"
         if t == 2:
             s += " flags: "+self.flg.binary()
         if t == 3:
-            s += " flags: "+", ".join(self.flg.lis())
+            s += " flags: "+", ".join(self.flg.lis())    
         return s
-        
+
+[delete,lock,prot,temp,val,num,nnum1,nnumr,nev1,nevr,idem,comm,assoc,lista,\
+ infix,prefix,preced]= [2**i for i in range(17)]
+
 class Flag(object):
     names = ["del","loc","prot","temp","val","num","nnum1","nnumr","nev1","nevr",\
-             "idem","comm","assoc","list","infix","prefix"]
+             "idem","comm","assoc","listable","infix","prefix","precedence"]
     code  = dict(zip(names,[2**i for i in range(len(names))]))
     num = len(names)
     def __init__(self,f=0):
         self.flag = f
-    def on(self,f):                             # set named flag
-        self.flag |= self.code[f]  
-    def off(self,f):                            # clear named flag
-        self.flag &= ~self.code[f]
-    def bit(self,f):                            # test named flag
-        return self.flag & self.code[f] 
+    def on(self,f):                             # set flag
+        self.flag |= f  
+    def off(self,f):                            # clear flag
+        self.flag &= ~f
+    def bit(self,f):                            # test flag
+        return self.flag & f 
     def lis(self):
-        return [self.names[i] for i in range(len(self.num)) if 2**i & self.flag]
+        return [self.names[i] for i in range(self.num) if 2**i & self.flag]
     def binary(self):
         return bin(self.flag)
+    def name(self,i):
+        return self.names[i]
 
+precedence = {";":1, "=":3, ":=":3, "+=":7, "-=":7, "*=":7, "/=":7,"~~":11,\
+          "||":21,"&&":23,"!":24,"==":28,"!=":28,"<":28,"<=":28,">":28,\
+          ">=":28, "+":31,"-":31, "*":38, "" :38, "/":39,"^":45,"<>":46}
+   
+def prior(v):
+    if v not in precedence:
+        return 100              # default value
+    return precedence[v]
     
+prefixtab = {"-":"Minus","!":"Not"}
+infixtab  = {";":"CompoundExpr", "|":"Altern", "=":"Set", ":=":"SetAfter",\
+          "+=":"AddTo", "-=":"SubFrom", "*=":"TimesTo", "/=":"DivideBy",\
+          "~~":"StringExpr", "||":"Or", "&&":"And", "==":"Equal", "===":"SameQ",\
+          "!=":"Unequal","<":"Less","<=":"LessEq",">":"Greater",">=":"GreaterEq",\
+          "+":"Add", "-":"Sub", "*":"Times", "/":"Divide", "^":"Power",\
+          ".":"Dot","<>":"StringJoin"}
+postfixtab = {"!":"Factorial","&":"Function"}
 
    
         
