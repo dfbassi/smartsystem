@@ -15,9 +15,10 @@ class Context(object):
     def __init__(self,names=["System`"]):
         self.ctxcnt = 0         # counter for contexts
         self.symcnt = 0         # counter for symbols
-        self.ctxcod = {}        # table of codes for context
+        self.ctxnam = {}        # table of context names
+        self.ctxcod = {}        # table of context codes
         self.symtab = {}        # table for symbol object: symtab[cod] -> sym
-        self.symcod = {}        # table for symbol cods: symcod[name] -> [cods]
+        self.symcod = {}        # table for symbol codes: symcod[name] -> [cods]
         if type(names) == str:
             names = [names]
         for n in names:         # add context(s)
@@ -29,6 +30,7 @@ class Context(object):
         if nam not in self.ctxcod:
             self.ctxcnt +=1
             self.ctxcod[nam] = self.ctxcnt
+            self.ctxnam[self.ctxcnt] = nam
         return self.ctxcod[nam]
    
     def setCur(self,nam):
@@ -37,17 +39,31 @@ class Context(object):
         
     def setPath(self,names):
         self.ctxlis = [self.context(n) for n in names]
-       
+        
+    def show(self):
+        return self.current
+
+    def info(self,q=0):
+        s = [ "Current Context: "+ self.current]
+        s.append("Context Search : "+" ".join([self.ctxnam[i] for i in self.ctxlis]))
+        s.append("All Contexts   : "+" ".join([self.ctxnam[i+1] for i in range(self.ctxcnt)]))
+        if q>=1:
+            s.append("Symbols defined : "+str(self.symcnt))
+        if q>=2:
+            s += map(lambda n : str(n)+" "+self.symtab[n].name+" "+str(self.symtab[n].ctx),\
+            range(1,self.symcnt+1))
+        return s
+
     def numsym(self,fullname):                  # find symbol number
         names = fullname.rsplit('`',1)
         if len(names) == 2:
             ctx = [self.context(names[0]+'`')]  # first part is the context
         else:
-            ctx = [self.current]+self.ctxlis   # no context given: current & list
+            ctx = [self.currnum]+self.ctxlis   # no context given: current & list
         print "ctx search index : ", ctx
         if names[-1] in self.symcod:            # name in lookup table
             cod = self.symcod[names[-1]]        # find symbol codes
-            cct = [self.symtab[c].ctxnum for c in cod] # find context(s)
+            cct = [self.symtab[c].ctx for c in cod] # find context(s)
             for c in ctx:                       # searching in the same order
                 if c in cct:                    # found !
                     return cod[ cct.index(c) ]  # returning code of symbols
@@ -64,12 +80,27 @@ class Context(object):
     def delsym(self,num):           # remove symbol
         nam = self.symtab[num].name
         self.symcod[nam].remove(num)
+
+flags = ["del","loc","prot","temp","val","num","nnum1","nnumr","nev1","nevr",\
+         "idem","comm","assoc","list","infix","prefix"]
         
 class Symbol(object):
+    flagcod = dict(zip(flags,[2**i for i in range(len(flags))]))
     def __init__(self,nam,ct):
         self.name = nam             # symbol name
-        self.ctxnum = ct            # context number
-        self.flg = 0                # flag
+        self.ctx  = ct            # context number
+        self.flg  = 0                # flag (default value)
+    def show(self,t=0):
+        s = self.name
+        if t>= 1 :
+            s += " ctx: "+str(self.ctx)
+        if t == 2:
+            s += " flags: "+bin(self.flg)
+        if t == 3:
+            s += " flags: "+", ".join([flags[i] for i in range(16) if 2**i & self.flg])
+        return s
+        
+        
         
         
        
