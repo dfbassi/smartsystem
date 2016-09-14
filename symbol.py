@@ -77,29 +77,47 @@ class Context(object):
             self.symcod[names[-1]] = [self.symcnt]
         return self.symcnt
        
-    def delsym(self,num):           # remove symbol
+    def delsym(self,num):               # remove symbol
         nam = self.symtab[num].name
-        self.symcod[nam].remove(num)
-
-flags = ["del","loc","prot","temp","val","num","nnum1","nnumr","nev1","nevr",\
-         "idem","comm","assoc","list","infix","prefix"]
-        
+        self.symcod[nam].remove(num)    # remove reference
+        self.symtab[num].flg.on('del')  # set del flag
+     
 class Symbol(object):
-    flagcod = dict(zip(flags,[2**i for i in range(len(flags))]))
     def __init__(self,nam,ct):
         self.name = nam             # symbol name
-        self.ctx  = ct            # context number
-        self.flg  = 0                # flag (default value)
+        self.ctx  = ct              # context number
+        self.flg  = Flag()          # flag (default value)
     def show(self,t=0):
         s = self.name
         if t>= 1 :
             s += " ctx: "+str(self.ctx)
         if t == 2:
-            s += " flags: "+bin(self.flg)
+            s += " flags: "+self.flg.binary()
         if t == 3:
-            s += " flags: "+", ".join([flags[i] for i in range(16) if 2**i & self.flg])
+            s += " flags: "+", ".join(self.flg.lis())
         return s
         
+class Flag(object):
+    names = ["del","loc","prot","temp","val","num","nnum1","nnumr","nev1","nevr",\
+             "idem","comm","assoc","list","infix","prefix"]
+    code  = dict(zip(names,[2**i for i in range(len(names))]))
+    num = len(names)
+    def __init__(self,f=0):
+        self.flag = f
+    def on(self,f):                             # set named flag
+        self.flag |= self.code[f]  
+    def off(self,f):                            # clear named flag
+        self.flag &= ~self.code[f]
+    def bit(self,f):                            # test named flag
+        return self.flag & self.code[f] 
+    def lis(self):
+        return [self.names[i] for i in range(len(self.num)) if 2**i & self.flag]
+    def binary(self):
+        return bin(self.flag)
+
+    
+
+   
         
         
         
