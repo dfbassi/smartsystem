@@ -8,13 +8,23 @@ Created on Sat Sep 10 23:29:55 2016
 """
     SMARTS
     
+    System Class
     Symbol Class
+    Flag   Class
     
 """
+
+import sysfunc as sys
+import re
+
+title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+\
+      "\n\tby Danilo Bassi"
+
 class Context(object):
     def __init__(self,names=["System`"]): # default context is System
         self.ctxcnt = 0         # counter for contexts
         self.symcnt = 0         # counter for symbols
+        self.inpnum = 0         # counter for inputs (for a session)
         self.ctxnam = {}        # table of context names
         self.ctxcod = {}        # table of context codes
         self.symtab = {}        # table for symbol object: symtab[cod] -> sym
@@ -92,7 +102,18 @@ class Context(object):
         num = self.numsym(name)
         self.prfxcod[num] = oper
         self.symtab[num].operator(oper,pre,infix)
-         
+      
+    def inpLoop(self,init=title):
+        print init
+        while True :                    # infinite loop
+            self.inpnum += 1            # input counter increased
+            instr = raw_input("In["+str(self.inpnum)+"]:= ")
+            if re.match(r'Quit',instr) :
+                break
+            inexp = sys.ToExpr(instr,1) # input is parsed into expression
+            ouexp = sys.Eval(inexp)     # evaluation
+            print "Out["+str(self.inpnum)+"]= "+ouexp.show()
+
 class Symbol(object):
     def __init__(self,nam,ct,f=0):  # new symbol: name, context, flags
         self.name = nam             # symbol name
@@ -160,8 +181,7 @@ infixtab  = {";":"CompoundExpr", "|":"Altern", "=":"Set", ":=":"SetAfter",\
           "+":"Add", "-":"Sub", "*":"Times", "/":"Divide", "^":"Power",\
           ".":"Dot","<>":"StringJoin"}
 postfixtab = {"!":"Factorial","&":"Function"}
-
-   
+ 
         
         
         
