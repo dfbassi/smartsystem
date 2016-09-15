@@ -81,6 +81,8 @@ class Compound(Expr):
         self.val.insert(0,value)
     def insert(self,value,pos):
         self.val.insert(pos,value)
+    def pop(self,pos=-1):
+        self.val.pop(pos)        
     def head(self):
         return self.val[0]
     def show(self):
