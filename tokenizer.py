@@ -30,7 +30,7 @@ class Token(object):
     strg   = r'\"[^\"]*\"'
     number = r'\d+\.?\d*'
     oper   = r'[-^+*/!;]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}'
-    delim  = r'[(){},]|\[{1,2}|\]{1,2}'
+    delim  = r'[(){},]|\[{1,2}|\]{1,2}|\n(?!\Z|\n)'
     alltok = name +"|"+strg+"|"+number+"|"+delim+"|" + oper
     prefix = ["-","!"]
     infix  = [";","|", "=", ":=", "+=", "-=", "*=", "/=","~~","||","&&", \
@@ -39,7 +39,7 @@ class Token(object):
     ledelim= ["(","{",r"[",r"[["]
     ridelim= [")","}",r"]",r"]]"]
     opers  = postfix+infix+prefix
-    nonprod= opers+ridelim+[',']
+    nonprod= opers+ridelim+[',','\n']
      
     def __init__(self,input):                   # input is string to be parsed
         self.q = Queue()                        # a queue is used
@@ -53,6 +53,8 @@ class Token(object):
                 self.q.enqueue((t[1:-1],'string'))
             elif re.match(r'[(){},\[\]]', t[0]):# delimiter
                 self.q.enqueue((t,'delim'))
+            elif re.match(r'\n', t[0]):         # new line
+                self.q.enqueue((t,'newline'))            
             elif t in self.infix:               # infix operator
                 self.q.enqueue((t,'infix'))
             elif t in self.pefix:               # prefix operator
