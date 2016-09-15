@@ -31,9 +31,8 @@ def sysToExpr(st,h=None) :
     return exp
     
 def sysRead(fl) :
+    
     pass
-
-def 
     
 
     

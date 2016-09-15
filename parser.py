@@ -15,6 +15,9 @@ import expr
 import symbol as sym
 
 def parseExpr(tk,pr=0):
+    if tk.typ()== "newline" :
+        tk.popVal()
+        print "parser found newline...."
     while True:
         e = parseNumber(tk)             # try parsing a number
         if e :
@@ -29,6 +32,8 @@ def parseExpr(tk,pr=0):
         if e :
             break
         return None
+    if tk.typ()== "newline" :
+        return e
     return parseInfix(tk,e,pr)          # try parsing an infix expression
                                         # if no infix, e is returned
 
