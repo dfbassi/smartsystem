@@ -94,12 +94,12 @@ class Context(object):
         self.symtab[num].operator(oper,pre,infix)
          
 class Symbol(object):
-    def __init__(self,nam,ct,f=0):
+    def __init__(self,nam,ct,f=0):  # new symbol: name, context, flags
         self.name = nam             # symbol name
         self.ctx  = ct              # context number
         self.flg  = Flag(f)         # flag (default value)
         
-    def operator(self,op,pr,f):     # 
+    def operator(self,op,pr,f):     # symbol with op., precedence, type
         self.opr = op
         self.pre = pr
         self.flg.on(f|preced)
@@ -120,13 +120,13 @@ class Symbol(object):
             s += " flags: "+", ".join(self.flg.lis())    
         return s
 
+# variables defined as mask for flag variable
 [delete,lock,prot,temp,val,num,nnum1,nnumr,nev1,nevr,idem,comm,assoc,lista,\
  infix,prefix,preced]= [2**i for i in range(17)]
 
 class Flag(object):
     names = ["del","loc","prot","temp","val","num","nnum1","nnumr","nev1","nevr",\
              "idem","comm","assoc","listable","infix","prefix","precedence"]
-    code  = dict(zip(names,[2**i for i in range(len(names))]))
     num = len(names)
     def __init__(self,f=0):
         self.flag = f

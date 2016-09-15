@@ -12,6 +12,7 @@
 
 """
 import expr
+import symbol as sym
 
 def parseExpr(tk,pr=0):
     while True:
@@ -111,7 +112,7 @@ def parseInfix(tk,e,pr):                # e contains possible first expression
     print "inFix: ",tk.val()," ",e.show()," ",pr
     op = getInfixPrior(tk,pr+1)         # getting next operator with better priority
     while op :
-        pr = expr.prior(op.val)             # operator priority
+        pr = sym.prior(op.val)             # operator priority
         s = parseExpr(tk,pr)                # try parsing second expression
         if s :
             print "op,f,s: ", op.show(),",",e.show(),",",s.show()
@@ -126,9 +127,9 @@ def parseInfix(tk,e,pr):                # e contains possible first expression
     return e
 
 def getInfixPrior(tk,pr):
-    if tk.impliedProd() and expr.prior("*") >= pr:
+    if tk.impliedProd() and sym.prior("*") >= pr:
         print "try implied * before :",tk.val()
         return expr.Symbol("*")         # getting product with empty token
-    if tk.typ() == "infix" and expr.prior(tk.val()) >= pr:
+    if tk.typ() == "infix" and sym.prior(tk.val()) >= pr:
         return expr.Symbol(tk.popVal()) # getting infix (as Symbol)
 

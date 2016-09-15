@@ -184,13 +184,3 @@ def depth(tre):
     if type(tre[0]) == str :
         return 1
     return max(map(depth,tre[0]))+1
- 
-precedence = {";":1, "=":3, ":=":3, "+=":7, "-=":7, "*=":7, "/=":7,"~~":11,\
-          "||":21,"&&":23,"!":24,"==":28,"!=":28,"<":28,"<=":28,">":28,\
-          ">=":28, "+":31,"-":31, "*":38, "" :38, "/":39,"^":45,"<>":46}
-   
-def prior(v):
-    if v not in precedence:
-        return 100              # default value
-    return precedence[v]
- 
