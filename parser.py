@@ -114,12 +114,9 @@ def parseGroup(tk):
         return e
             
 def parseInfix(tk,e,pr):                # e contains possible first expression
-    print "try inFix: e,op,pr ",e.show()," ",tk.val()," ",pr
     op = getInfixPrior(tk,pr)           # getting next operator with better priority
-    i = 1
     while op :
         pri = sym.prior(op.val)              # operator priority
-        print "while, i :",i," pr : ",pri
         s = parseExpr(tk,pri+1)                # try parsing second expression
         if s :
             print "op,f,s: ", op.show(),",",e.show(),",",s.show()
@@ -131,13 +128,11 @@ def parseInfix(tk,e,pr):                # e contains possible first expression
         else :
             print "Syntax error, missing expression afer: "+op.val              
         op = getInfixPrior(tk,pr)           # getting next operator with priority
-        i += 1
     return e
 
 def getInfixPrior(tk,pr):
-    print "getInfixP tk,pr :", tk.val(), pr
     if tk.impliedProd() and sym.prior("*") >= pr:
-        print "try implied * before :",tk.val()
+#        print "try implied * before :",tk.val()
         return expr.Symbol("*")         # getting product with empty token
     if tk.typ() == "infix" and sym.prior(tk.val()) >= pr:
         return expr.Symbol(tk.popVal()) # getting infix (as Symbol)
