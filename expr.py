@@ -15,7 +15,7 @@ import parseregex as pre
 
 class Expr(object):
     re = pre.regex(r"$\[($(,$)*)?\]")
-    assoc = [";", "||", "&&","==","<","<=",">",">=", "+", "*","^","<>"]
+    assoc = [";", "||", "&&","==","<","<=",">",">=", "+", "*",'^',"<>"]
  
     def __init__(self,value):
         self.val = value

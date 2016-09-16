@@ -18,7 +18,7 @@ import sysfunc as sys
 import re
 
 title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+\
-      "\n\tby Danilo Bassi"
+      "\n\tby  Danilo Bassi"
 
 class Context(object):
     def __init__(self,names=["System`"]): # default context is System

@@ -22,6 +22,8 @@ def ToExpr(st,h=None) :  # ToExpr coverts string into an expression
     tok = tk.Token(st)
     if h == 1 :                                 # Looking for one expression
         exp = ps.parseExpr(tok)
+        if tok.size()>0:
+            print "remaining tokens: ",tok.val()
         if exp :
             return exp
         else :
