@@ -16,12 +16,13 @@ Created on Sat Sep 10 23:29:55 2016
 
 import sysfunc as sys
 import re
+import operator as op
 
 title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+\
       "\n\tby  Danilo Bassi"
 
-class Context(object):
-    def __init__(self,names=["System`"]): # default context is System
+class System(object):
+    def __init__(self,ctxt=["System`"]): # defines a symbolic system with context
         self.ctxcnt = 0         # counter for contexts
         self.symcnt = 0         # counter for symbols
         self.inpnum = 0         # counter for inputs (for a session)
@@ -31,11 +32,11 @@ class Context(object):
         self.symcod = {}        # table for symbol codes: symcod[name] -> [cods]
         self.infxcod= {}        # table for infix codes: infix[symbol] -> cod
         self.prfxcod= {}        # table for prefix codes: prefix[symbol] -> cod
-        if type(names) == str:
-            names = [names]
-        for n in names:         # add context(s)
+        if type(ctxt) == str:
+            ctxt = [ctxt]
+        for n in ctxt:          # input context(s)
             self.context(n)
-        self.setCur(names[0])
+        self.setCur(ctxt[0])
         self.ctxlis = [self.currnum]
               
     def context(self,nam):
@@ -92,38 +93,51 @@ class Context(object):
         nam = self.symtab[num].name
         self.symcod[nam].remove(num)    # remove reference
         self.symtab[num].flg.on(delete) # set delete flag
+        
+    def symbol(self,name) :             # finds symbol object, given name
+        return self.symtab[self.numsym[name]]
     
     def infix(self,name,oper,pre) :     # add infix operator to symbol
         num = self.numsym(name)
         self.infxcod[oper] = num
-        self.symtab[num].operator(oper,pre,prefix)
+        self.symtab[num].operator(oper,pre,infix)
         
     def prefix(self,name,oper,pre) :    # add prefix operator to symbol
         num = self.numsym(name)
         self.prfxcod[num] = oper
-        self.symtab[num].operator(oper,pre,infix)
+        self.symtab[num].operator(oper,pre,prefix)
       
     def inpLoop(self,init=title):
         print init
         while True :                    # infinite loop
             self.inpnum += 1            # input counter increased
             instr = raw_input("In["+str(self.inpnum)+"]:= ")
-            if re.match(r'Quit',instr) :
+            if re.match(r'Quit',instr): # session ends with Quit[]
                 break
             inexp = sys.ToExpr(instr,1) # input is parsed into expression
             ouexp = sys.Eval(inexp)     # evaluation
             print "Out["+str(self.inpnum)+"]= "+ouexp.show()
 
 class Symbol(object):
-    def __init__(self,nam,ct,f=0):  # new symbol: name, context, flags
-        self.name = nam             # symbol name
-        self.ctx  = ct              # context number
-        self.flg  = Flag(f)         # flag (default value)
+    def __init__(self,nam,ct,f=0):      # new symbol: name, context, flags
+        self.name = nam                 # symbol name
+        self.ctx  = ct                  # context number
+        self.flg  = Flag(f)             # flag initial value
         
-    def operator(self,op,pr,f):     # symbol with op., precedence, type
-        self.opr = op
-        self.pre = pr
-        self.flg.on(f|preced)
+    def operator(self,par):             # initilizes symbol operator (if any)
+        self.pre = par[1]               # par[1] is the precedence nuber (int)
+        self.opr = par[2]               # par[2] is the operator (str)
+        self.on(par[0])                 # par[0] is the type (in-,pre-,post-fix)
+    
+    def on(self,flgnam):
+        self.flg.on(self.flg.number(flgnam))
+    
+    def off(self,flgnam):
+        self.flg.off(self.flg.number(flgnam))
+        
+    def select(self,par):
+        fun={"Operator":self.operator,"FlagOn":self.on,"FlagOff":self.off}
+        fun[par[0]](par[1:])
 
     def show(self,t=0):
         s = self.name
@@ -141,28 +155,37 @@ class Symbol(object):
             s += " flags: "+", ".join(self.flg.lis())    
         return s
 
-# variables defined as mask for flag variable
+# variables defined as mask for flag value
 [delete,lock,prot,temp,val,num,nnum1,nnumr,nev1,nevr,idem,comm,assoc,lista,\
  infix,prefix,preced]= [2**i for i in range(17)]
 
 class Flag(object):
-    names = ["del","loc","prot","temp","val","num","nnum1","nnumr","nev1","nevr",\
-             "idem","comm","assoc","listable","infix","prefix","precedence"]
-    num = len(names)
-    def __init__(self,f=0):
+    names = []
+    def __init__(self,f):
+        if type(f) != int:
+            f = self.number(f) # convert flag name(s) into number before
         self.flag = f
-    def on(self,f):                             # set flag
+    def on(self,f):                 # set flag
         self.flag |= f  
-    def off(self,f):                            # clear flag
+    def off(self,f):                # clear flag
         self.flag &= ~f
-    def bit(self,f):                            # test flag
+    def bit(self,f):                # test flag
         return self.flag & f 
     def lis(self):
-        return [self.names[i] for i in range(self.num) if 2**i & self.flag]
-    def binary(self):
-        return bin(self.flag)
-    def name(self,i):
+        return [self.names[i] for i in range(len(self.names)) if 2**i & self.flag]
+    def binary(self):           # output in binary format
+        return bin(self.flag)   
+    def name(self,i):           # find flag name given an index
         return self.names[i]
+    def index(self,n):          # find index given a flag name          
+        return self.names.index(n)
+    def number(self,nam):
+        if type(nam) == str:
+            return 2**self.names.index(nam)
+        elif type(nam) == list and nam !=[]:
+            return reduce(op.or_,[2**self.names.index(n) for n in nam])
+        return 0
+    
 
 precedence = {";":1, "=":3, ":=":3, "+=":7, "-=":7, "*=":7, "/=":7,"~~":11,\
           "||":21,"&&":23,"!":24,"==":28,"!=":28,"<":28,"<=":28,">":28,\
@@ -172,18 +195,19 @@ def prior(v):
     if v not in precedence:
         return 100              # default value
     return precedence[v]
-    
-prefixtab = {"-":"Minus","!":"Not"}
-infixtab  = {";":"CompoundExpr", "|":"Altern", "=":"Set", ":=":"SetAfter",\
-          "+=":"AddTo", "-=":"SubFrom", "*=":"TimesTo", "/=":"DivideBy",\
-          "~~":"StringExpr", "||":"Or", "&&":"And", "==":"Equal", "===":"SameQ",\
-          "!=":"Unequal","<":"Less","<=":"LessEq",">":"Greater",">=":"GreaterEq",\
-          "+":"Add", "-":"Sub", "*":"Times", "/":"Divide", "^":"Power",\
-          ".":"Dot","<>":"StringJoin"}
-postfixtab = {"!":"Factorial","&":"Function"}
- 
+
+def init(fl,ctxt=["System`"]):      # initializes system structures from file
+    s = System(ctxt)                # system class instantiated with context
+    e = sys.Read(fl)                # gets list of initial expressions (native list)
+    i = [ei.typ() for ei in e].index('Sequence')    # finding first list (sequence)
+    Flag.names = e[i].value()[1:]   # flag names list initialized
+    i += 1                          # mext expression
+    while e[i].typ() == 'Sequence':
+        ev = e[i].value()
+        print i," : ",ev
+        sym = s.symbol(ev[1])       # gets symbol object (creating when necessary)
+        for p in ev[2:] :
+            sym.select(p)        
         
         
-        
-       
  
