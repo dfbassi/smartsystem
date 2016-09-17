@@ -15,7 +15,7 @@ import expr
 import symbol as sym
 
 def parseExpr(tk,pr=0):
-    if tk.typ()== "newline" :
+    if tk.typ()== "newline" :           # leading newline eliminated
         tk.popVal()
         print "parser found newline...."
     while True:
@@ -31,8 +31,8 @@ def parseExpr(tk,pr=0):
         e = parseGroup(tk)              # try parsing a group expression
         if e :
             break
-        return None
-    if tk.typ()== "newline" :
+        return None                     # nothing to parse: the end
+    if tk.typ()== "newline" :           # newline breaks search of infix oper.
         return e
     return parseInfix(tk,e,pr)          # try parsing an infix expression
                                         # if no infix, e is returned
@@ -104,7 +104,7 @@ def parseSeqTail(tk,e):
     return e 
 
 def parseGroup(tk): 
-    if tk.val()== '(' :                 # try parsing an open parenthesis
+    if tk.val()== '(' :                 # try parsing open parenthesis
         tk.popVal()                     # delimiter '(' is popped
         e = parseExpr(tk)               # parsing expression
         if e and tk.val()== ')' :       # parsing 
@@ -114,26 +114,23 @@ def parseGroup(tk):
         return e
             
 def parseInfix(tk,e,pr):                # e contains possible first expression
-    op = getInfixPrior(tk,pr)           # getting next operator with better priority
+    op = getInfixPrior(tk,pr)           # next operator (if priority ≥ pr )
     while op :
-        pri = sym.prior(op.val)              # operator priority
-        s = parseExpr(tk,pri+1)                # try parsing second expression
+        s = parseExpr(tk,sym.prior(op.val)+1)   # try parsing second expression
         if s :
-            print "op,f,s: ", op.show(),",",e.show(),",",s.show()
             if e.head().val!=op.val or not op.isAssoc():
-                f = e                       # e becomes first expression     
-                e = expr.Compound(op)       # op is head of compound expression
-                e.append(f)                 # adding first expression  
-            e.append(s)                     # adding second  expression
+                f = e                           # e becomes first expression     
+                e = expr.Compound(op)           # op head of compound expression
+                e.append(f)                     # adding first expression  
+            e.append(s)                         # adding second  expression
         else :
             print "Syntax error, missing expression afer: "+op.val              
-        op = getInfixPrior(tk,pr)           # getting next operator with priority
+        op = getInfixPrior(tk,pr)       # next operator (if priority ≥ pr )
     return e
 
 def getInfixPrior(tk,pr):
     if tk.impliedProd() and sym.prior("*") >= pr:
-#        print "try implied * before :",tk.val()
         return expr.Symbol("*")         # getting product with empty token
     if tk.typ() == "infix" and sym.prior(tk.val()) >= pr:
-        return expr.Symbol(tk.popVal()) # getting infix (as Symbol)
+        return expr.Symbol(tk.popVal()) # getting next operator
 
