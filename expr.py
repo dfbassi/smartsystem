@@ -13,20 +13,20 @@
 """
 import parseregex as pre
 
-class Expr(object):
+class Expr(object):                     # parent class for expressions
     re = pre.regex(r"$\[($(,$)*)?\]")
     assoc = [";", "||", "&&","==","<","<=",">",">=", "+", "*",'^',"<>"]
  
     def __init__(self,value):
         self.val = value
-    def typ(self):
+    def typ(self):                      # gives name of class (or type) expression
         return "Expression"
-    def show(self):
+    def value(self):                    # gives value in native type (no conversion)
+        return self.val
+    def show(self):                     # gives value contained in a string
         return self.val
     def rexpr(rexp):
         Expr.re = pre.regex(rexp)
-    def isCompound(self):
-        return self.typ() == "Compound"
     def tree(self):
         return (self.show(),len(self.show()))
     def printTree(self):
@@ -58,10 +58,10 @@ class Real(Expr):
         return str(self.val)
 
 class String(Expr):
-    def show(self):
-        return '"'+self.val+'"'     # explicit display of braces for string
     def typ(self):
         return "String"
+    def show(self):
+        return '"'+self.val+'"'     # explicit display of braces for string
 
 class Symbol(Expr):
     def typ(self):
@@ -74,7 +74,9 @@ class Compound(Expr):
         else:
             self.val = []
     def typ(self):
-        return "Compound"   
+        return "Sequence"
+    def value(self) :
+        return [e.value() for e in self.val]
     def append(self,value):
         self.val.append(value)
     def prepend(self,value):
