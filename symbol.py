@@ -8,9 +8,10 @@ Created on Sat Sep 10 23:29:55 2016
 """
     SMARTS
     
-    System Class
-    Symbol Class
-    Flag   Class
+    System  Class
+    Context Class
+    Symbol  Class
+    Flag    Class
     
 """
 
@@ -22,77 +23,88 @@ title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+
       "\n\tby  Danilo Bassi"
 
 class System(object):
-    def __init__(self,ctxt=["System`"]): # defines a symbolic system with context
-        self.ctxcnt = 0         # counter for contexts
-        self.symcnt = 0         # counter for symbols
-        self.inpnum = 0         # counter for inputs (for a session)
-        self.ctxnam = {}        # table of context names
-        self.ctxcod = {}        # table of context codes
-        self.symtab = {}        # table for symbol object: symtab[cod] -> sym
-        self.symcod = {}        # table for symbol codes: symcod[name] -> [cods]
-        self.infxcod= {}        # table for infix codes: infix[symbol] -> cod
-        self.prfxcod= {}        # table for prefix codes: prefix[symbol] -> cod
-        if type(ctxt) == str:
-            ctxt = [ctxt]
-        for n in ctxt:          # input context(s)
-            self.context(n)
-        self.setCur(ctxt[0])
-        self.ctxlis = [self.currnum]
+    def __init__(self,c=None):      # defines a symbolic system with context
+        self.inpnum = 0                     # counter for inputs (for a session)
+        self.ctxtab = {}                    # table of context with name as key
+        self.symtab = {}                    # table of symbol with name as key
+        self.ctxpth = []                    # initial context search path
+        if self.context(c):
+            c = 'Core`'                     # default context
+        self.setContext(c)                  # initial context (current) is set
+        
+    def isSymbol(self,name):
+        return re.match('[a-zA-Z$]',name)   # symbol names starts alphabetic
               
-    def context(self,nam):
-        if nam not in self.ctxcod:
-            self.ctxcnt +=1
-            self.ctxcod[nam] = self.ctxcnt
-            self.ctxnam[self.ctxcnt] = nam
-        return self.ctxcod[nam]
+    def context(self,name):
+        if type(name) == str and self.isSymbol(name):
+            if name not in self.ctxtab:
+                self.ctxtab[name] = Context(name)
+            return self.ctxtab[name]
    
-    def setCur(self,nam):
-        self.current = nam
-        self.currnum = self.context(nam)
+    def setContext(self,name):
+        c = self.context(name)
+        if c:                               # valid symbol name
+            self.curctx = c
+            self.contextUpdate()
+            return c
         
-    def setPath(self,names):
-        self.ctxlis = [self.context(n) for n in names]
+    def setContextPath(self,names):         # defines new search path
+        self.ctxpth = [self.context(n) for n in names if self.context(n)]
+        self.contextUpdate()
         
-    def info(self,q=0):
-        s = [ "Current Context: "+ self.current]
-        s.append("Context Search : "+",".join([self.ctxnam[i] for i in self.ctxlis]))
-        s.append("Context Table  : "+",".join([self.ctxnam[i+1] for i in range(self.ctxcnt)]))
-        s.append("Number of symbols : "+str(self.symcnt))
+    def contextUpdate(self):                # defines full search list
+        self.ctxsearch = self.ctxpth[:]     # a copy
+        if self.curctx in self.ctxpth:
+            self.ctxpth.remove(self.curctx)
+        self.ctxsearch.insert(0,self.curctx)# firts element is current
+              
+    def showContext(self):
+        return ["Current Context: "+ self.curctx.show(),
+             "Context Path   : "+",".join([self.c.show() for c in self.ctxpth]),
+             "Context List   : "+",".join(self.ctxtab.keys())]
+             
+    def showSymbol(self,q=0):
+        s = ["Number of defined symbols :"+format(len(self.symtab),'4d')]
         if q>=1:
-            s += [format(n,'3d')+" "+self.symtab[n].show(q) for n in range(1,self.symcnt+1)]
+            s += [self.symtab[k].show(2*q-2) for k in self.symtab.keys()]
         return s
 
-    def numsym(self,fullname):                  # find symbol number
-        names = fullname.rsplit('`',1)
-        if len(names) == 2:
-            ctx = [self.context(names[0]+'`')]  # first part is the context
-        else:
-            ctx = [self.currnum]+self.ctxlis   # no context given: current & list
-#        print "ctx search index : ", ctx
-        if names[-1] in self.symcod:            # name in lookup table
-            cod = self.symcod[names[-1]]        # find symbol codes
-            cct = [self.symtab[c].ctx for c in cod] # find context(s)
-            for c in ctx:                       # searching in the same order
-                if c in cct:                    # found !
-                    return cod[ cct.index(c) ]  # returning code of symbols
-        else:
-            cod = None
-        self.symcnt += 1                        # code for new symbol
-        self.symtab[self.symcnt] = Symbol(names[-1],ctx[0])   # new symbol
-        if cod :
-            self.symcod[names[-1]].append(self.symcnt)
-        else:
-            self.symcod[names[-1]] = [self.symcnt]
-        return self.symcnt
-       
+    def symbol(self,name) :             # finds symbol object, given name
+        if not self.isSymbol(name) :    # search for possible operator
+            if name in self.symtab :
+                return self.symtab[name]
+        else :                          # name is valid for  symbol
+            ctx = self.ctxsearch            # default search: copy
+            if '`' in name :                # name with context
+                names = name.rsplit('`',1)      # finding parts
+                name = names[1]                 # pure symbol name (second)
+                ctx = [self.context(names[0])]  # search here       
+            if name in self.symtab :        # there is an entry in symbol table
+                s = self.symtab[name]           # finding symbol(s)
+                if type(s) != list :            # single symbol
+                    if s.ctx in ctx:                # matches context
+                        return s                   
+                    s2 = Symbol(name,ctx[0])        # not found; new symbol
+                    self.symtab[name] = [s,s2]      # symbol table updated: list
+                    return s2
+                else :                          # 2 or more symbols
+                    symctx = [si.ctx for si in s]
+                    for c in ctx:                   # searching in the same order
+                        if c in symctx:                 # matches context 
+                            return s[symctx.index(c)]   # returns symbol
+                    sn = Symbol(name,ctx[0])        # not found; new symbol
+                    self.symtab[name].append(sn)    # symbol table list updated
+                    return sn
+            else :                          # no entry in symbol table
+                s = Symbol(name,ctx[0])         # not found: new symbol
+                self.symtab[name] = s           # first entry for symbol name
+                return s
+    
     def delsym(self,num):               # remove symbol
         nam = self.symtab[num].name
         self.symcod[nam].remove(num)    # remove reference
         self.symtab[num].flg.on(delete) # set delete flag
         
-    def symbol(self,name) :             # finds symbol object, given name
-        return self.symtab[self.numsym(name)]
-    
     def inpLoop(self,init=title):
         print init
         while True :                    # infinite loop
@@ -104,6 +116,12 @@ class System(object):
             ouexp = sys.Eval(inexp)     # evaluation
             print "Out["+str(self.inpnum)+"]= "+ouexp.show()
 
+class Context(object):
+    def __init__(self,nam):      # new context: name
+        self.name = nam                 # symbol name
+    def show(self):
+        return self.name
+ 
 class Symbol(object):
     def __init__(self,nam,ct,f=0):      # new symbol: name, context, flags
         self.name = nam                 # symbol name
@@ -126,19 +144,22 @@ class Symbol(object):
         fun[par[0]](par[1:])
 
     def show(self,t=0):
-        s = format(self.name,'10s')
-        if t>= 1 :
-            s += "("+str(self.ctx)+")"
-            if self.flg.bit(infix | prefix):
-                s += " op("+format(self.pre,'2d')+") "+format(self.opr,'4s')
-                if self.flg.bit(infix):
-                    s +="infix "
-                else :
-                    s +="prefix"
-        if t == 2:
-            s += " flags "+self.flg.binary()
-        if t == 3:
-            s += " flags "+", ".join(self.flg.lis())    
+        if t % 2 == 0 :
+            s = format(self.name,'10s')
+        else:
+            s = ' '*10
+        s += "("+self.ctx.show()+")"
+        t /= 2
+        if t % 3 == 1:
+            s += " Flags "+self.flg.binary()
+        if  (t/3) % 2 and self.flg.bit(infix | prefix):
+            if self.flg.bit(infix):
+                s +=" Infix "
+            else :
+                s +=" Prefix"           
+            s += "("+format(self.pre,'2d')+") "+format(self.opr,'4s')
+        if t % 3 == 2:
+            s += " Flags: "+", ".join(self.flg.lis())    
         return s
 
 # variables defined as mask for flag value
@@ -182,7 +203,7 @@ def prior(v):
         return 100              # default value
     return precedence[v]
 
-def init(fl,ctxt=["System`"]):      # initializes system structures from file
+def init(fl,ctxt="Core`"):          # initializes system structures from file
     s = System(ctxt)                # system class instantiated with context
     e = sys.Read(fl)                # list of initial expressions (native list)
     Flag.names = e[0].value()[1:]   # flag names list initialized
