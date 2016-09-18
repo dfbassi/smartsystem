@@ -60,9 +60,8 @@ class System(object):
         s = [ "Current Context: "+ self.current]
         s.append("Context Search : "+",".join([self.ctxnam[i] for i in self.ctxlis]))
         s.append("Context Table  : "+",".join([self.ctxnam[i+1] for i in range(self.ctxcnt)]))
+        s.append("Number of symbols : "+str(self.symcnt))
         if q>=1:
-            s.append("Number of symbols : "+str(self.symcnt))
-        if q>=2:
             s += [str(n)+" : "+self.symtab[n].show(q) for n in range(1,self.symcnt+1)]
         return s
 
@@ -72,7 +71,7 @@ class System(object):
             ctx = [self.context(names[0]+'`')]  # first part is the context
         else:
             ctx = [self.currnum]+self.ctxlis   # no context given: current & list
-        print "ctx search index : ", ctx
+#        print "ctx search index : ", ctx
         if names[-1] in self.symcod:            # name in lookup table
             cod = self.symcod[names[-1]]        # find symbol codes
             cct = [self.symtab[c].ctx for c in cod] # find context(s)
@@ -95,7 +94,7 @@ class System(object):
         self.symtab[num].flg.on(delete) # set delete flag
         
     def symbol(self,name) :             # finds symbol object, given name
-        return self.symtab[self.numsym[name]]
+        return self.symtab[self.numsym(name)]
     
     def infix(self,name,oper,pre) :     # add infix operator to symbol
         num = self.numsym(name)
@@ -143,8 +142,8 @@ class Symbol(object):
         s = self.name
         if t>= 1 :
             s += " "*(10 -len(self.name))+"("+str(self.ctx)+")"
-            if self.flg.bit(preced):
-                s += " op: "+self.opr+","+str(self.pre)
+            if self.flg.bit(infix | prefix):
+                s += " op("+str(self.pre)+"): "+self.opr+" "*(4-len(self.opr))
                 if self.flg.bit(infix):
                     s +=",infix "
                 else :
@@ -156,8 +155,9 @@ class Symbol(object):
         return s
 
 # variables defined as mask for flag value
-[delete,lock,prot,temp,val,num,nnum1,nnumr,nev1,nevr,idem,comm,assoc,lista,\
- infix,prefix,preced]= [2**i for i in range(17)]
+[delete,lock, prot, rdprot, temp, stub, func, nev1, nevr, neall, necom, neseq, num,\
+ nnum1, nnumr, nnuma, const, lista, assoc, comm, idem, prefix, infix, pstfix,\
+ val, dval, uval, defv ] = [2**i for i in range(28)]
 
 class Flag(object):
     names = []
@@ -198,16 +198,15 @@ def prior(v):
 
 def init(fl,ctxt=["System`"]):      # initializes system structures from file
     s = System(ctxt)                # system class instantiated with context
-    e = sys.Read(fl)                # gets list of initial expressions (native list)
-    i = [ei.typ() for ei in e].index('Sequence')    # finding first list (sequence)
-    Flag.names = e[i].value()[1:]   # flag names list initialized
-    i += 1                          # mext expression
-    while e[i].typ() == 'Sequence':
-        ev = e[i].value()
-        print i," : ",ev
+    e = sys.Read(fl)                # list of initial expressions (native list)
+    Flag.names = e[0].value()[1:]   # flag names list initialized
+    for ei in  e[1:] :
+        ev = ei.value()
+        print ev
         sym = s.symbol(ev[1])       # gets symbol object (creating when necessary)
         for p in ev[2:] :
-            sym.select(p)        
+            sym.select(p[1:])
+    return s
         
         
  
