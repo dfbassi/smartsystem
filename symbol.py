@@ -53,16 +53,13 @@ class System(object):
     def setPath(self,names):
         self.ctxlis = [self.context(n) for n in names]
         
-    def show(self):
-        return self.current
-
     def info(self,q=0):
         s = [ "Current Context: "+ self.current]
         s.append("Context Search : "+",".join([self.ctxnam[i] for i in self.ctxlis]))
         s.append("Context Table  : "+",".join([self.ctxnam[i+1] for i in range(self.ctxcnt)]))
         s.append("Number of symbols : "+str(self.symcnt))
         if q>=1:
-            s += [str(n)+" : "+self.symtab[n].show(q) for n in range(1,self.symcnt+1)]
+            s += [format(n,'3d')+" "+self.symtab[n].show(q) for n in range(1,self.symcnt+1)]
         return s
 
     def numsym(self,fullname):                  # find symbol number
@@ -96,16 +93,6 @@ class System(object):
     def symbol(self,name) :             # finds symbol object, given name
         return self.symtab[self.numsym(name)]
     
-    def infix(self,name,oper,pre) :     # add infix operator to symbol
-        num = self.numsym(name)
-        self.infxcod[oper] = num
-        self.symtab[num].operator(oper,pre,infix)
-        
-    def prefix(self,name,oper,pre) :    # add prefix operator to symbol
-        num = self.numsym(name)
-        self.prfxcod[num] = oper
-        self.symtab[num].operator(oper,pre,prefix)
-      
     def inpLoop(self,init=title):
         print init
         while True :                    # infinite loop
@@ -139,19 +126,19 @@ class Symbol(object):
         fun[par[0]](par[1:])
 
     def show(self,t=0):
-        s = self.name
+        s = format(self.name,'10s')
         if t>= 1 :
-            s += " "*(10 -len(self.name))+"("+str(self.ctx)+")"
+            s += "("+str(self.ctx)+")"
             if self.flg.bit(infix | prefix):
-                s += " op("+str(self.pre)+"): "+self.opr+" "*(4-len(self.opr))
+                s += " op("+format(self.pre,'2d')+") "+format(self.opr,'4s')
                 if self.flg.bit(infix):
-                    s +=",infix "
+                    s +="infix "
                 else :
-                    s +=",prefix"
+                    s +="prefix"
         if t == 2:
-            s += " flags: "+self.flg.binary()
+            s += " flags "+self.flg.binary()
         if t == 3:
-            s += " flags: "+", ".join(self.flg.lis())    
+            s += " flags "+", ".join(self.flg.lis())    
         return s
 
 # variables defined as mask for flag value
@@ -161,6 +148,7 @@ class Symbol(object):
 
 class Flag(object):
     names = []
+    fmt = '028b'
     def __init__(self,f):
         if type(f) != int:
             f = self.number(f) # convert flag name(s) into number before
@@ -174,9 +162,7 @@ class Flag(object):
     def lis(self):
         return [self.names[i] for i in range(len(self.names)) if 2**i & self.flag]
     def binary(self):           # output in binary format
-        return bin(self.flag)   
-    def name(self,i):           # find flag name given an index
-        return self.names[i]
+        return format(self.flag,self.fmt)   
     def index(self,n):          # find index given a flag name          
         return self.names.index(n)
     def number(self,nam):
