@@ -26,7 +26,7 @@ class Queue:                            # A queue is used to process tokens
         return self.items[-1]
 
 class Token(object):
-    name   = r'[a-zA-Z$][\w]*'                 # Regular expression for different tokens
+    name   = r'[a-zA-Z$][\w`]*'         # Regular expression for different tokens
     strg   = r'\"[^\"]*\"'
     number = r'\d+\.?\d*'
     oper   = r'[-^+*/!;]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}'
