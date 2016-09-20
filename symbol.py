@@ -24,61 +24,50 @@ title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+
 
 class System(object):
     def __init__(self,c=None):      # defines a symbolic system with context
-        self.inpnum = 0                     # counter for inputs (for a session)
-        self.ctxtab = {}                    # table of context with name as key
-        self.symtab = {}                    # table of symbol with name as key
-        self.ctxpth = []                    # initial context search path
-        if self.context(c):
-            c = 'Core`'                     # default context
-        self.setContext(c)                  # initial context (current) is set
+        self.inpnum = 0             # counter for inputs (for a session)
+        self.ctxtab = {}            # table of context with name as key
+        self.symtab = {}            # table of symbol with name as key
+        self.ctxpth = []
+        if not self.isSymbol(c) :   # verification
+            c = 'Core`'             # valid default context
+        self.context(c)             # context object defined
+        self.setContext(c)          # initial current context
+        self.setContextPath([c])    # initial context search path list
         
     def isSymbol(self,name):
         return re.match('[a-zA-Z$]',name)   # symbol names starts alphabetic
               
-    def context(self,name):
+    def context(self,name):                 # searches context, defning if needed
         if type(name) == str and self.isSymbol(name):
             if name not in self.ctxtab:
                 self.ctxtab[name] = Context(name)
             return self.ctxtab[name]
    
-    def setContext(self,name):
-        c = self.context(name)
-        if c:                               # valid symbol name
-            self.curctx = c
+    def setContext(self,name):              # defines new current context
+        if name in self.ctxtab:             # name must be in table
+            self.curctx = self.context(name)
             self.contextUpdate()
-            return c
+            return self.curctx
         
     def setContextPath(self,names):         # defines new search path
-        self.ctxpth = [self.context(n) for n in names if self.context(n)]
+        self.ctxpth = [self.context(n) for n in names if n in self.ctxtab]
         self.contextUpdate()
         
     def contextUpdate(self):                # defines full search list
         self.ctxsearch = self.ctxpth[:]     # a copy
-        if self.curctx in self.ctxpth:
-            self.ctxpth.remove(self.curctx)
-        self.ctxsearch.insert(0,self.curctx)# firts element is current
+        if self.curctx in self.ctxsearch:
+            self.ctxsearch.remove(self.curctx)
+        self.ctxsearch.insert(0,self.curctx)# first element is current
               
-    def showContext(self):
-        return ["Current Context: "+ self.curctx.show(),
-             "Context Path   : "+",".join([self.c.show() for c in self.ctxpth]),
-             "Context List   : "+",".join(self.ctxtab.keys())]
-             
-    def showSymbol(self,q=0):
-        s = ["Number of defined symbols :"+format(len(self.symtab),'4d')]
-        if q>=1:
-            s += [self.symtab[k].show(2*q-2) for k in self.symtab.keys()]
-        return s
-
     def symbol(self,name) :             # finds symbol object, given name
         if not self.isSymbol(name) :    # search for possible operator
-            if name in self.symtab :
-                return self.symtab[name]
+            return self.symtab.get(name)
         else :                          # name is valid for  symbol
-            ctx = self.ctxsearch            # default search: copy
+            ctx = self.ctxsearch[:]     # default search: copy
             if '`' in name :                # name with context
                 names = name.rsplit('`',1)      # finding parts
                 name = names[1]                 # pure symbol name (second)
-                ctx = [self.context(names[0])]  # search here       
+                ctx = [self.context(names[0]+'`')]  # context for search here       
             if name in self.symtab :        # there is an entry in symbol table
                 s = self.symtab[name]           # finding symbol(s)
                 if type(s) != list :            # single symbol
@@ -87,7 +76,7 @@ class System(object):
                     s2 = Symbol(name,ctx[0])        # not found; new symbol
                     self.symtab[name] = [s,s2]      # symbol table updated: list
                     return s2
-                else :                          # 2 or more symbols
+                else :                          # list of symbols
                     symctx = [si.ctx for si in s]
                     for c in ctx:                   # searching in the same order
                         if c in symctx:                 # matches context 
@@ -99,12 +88,46 @@ class System(object):
                 s = Symbol(name,ctx[0])         # not found: new symbol
                 self.symtab[name] = s           # first entry for symbol name
                 return s
-    
-    def delsym(self,num):               # remove symbol
-        nam = self.symtab[num].name
-        self.symcod[nam].remove(num)    # remove reference
-        self.symtab[num].flg.on(delete) # set delete flag
-        
+                
+    def configSym(self,par) :       # config symbol data, par is a list 
+        s = self.symbol(par[0])         # par[0] is symbol name
+        if s:
+            for pi in par[1:] :             # par[1]... list for Symbl.select
+                s.select(pi)
+                if pi[0]=="Operator":       # operator is used as key symtab
+                    self.symtab[s.opr] = s
+        else :
+            print "configSym : not valid ", par[0]
+
+    def deleteSym(self,s):              # removes symbol from table
+        if not s.flg.bit(prot) :        # not protected
+            if s.flg.bit(oper) :
+                self.symtab.pop(s.opr,None)
+            name = s.name
+            s1 = self.symtab.get(name)# looking for table entry
+            if s1:
+                s.name = "Deleted[\""+name+"\"]"
+                if s == s1 :                        # single symbol
+                    self.symtab.pop(name,None)
+                elif type(s1) == list and s in s1:  # list of symbols
+                    s1.remove(s)                    # symbol removed
+                    print "deleteSym,len(s1): ",len(s1),s1
+                    if len(s1) == 1 :               # singleton
+                        self.symtab[name] = s1[0]
+        else:
+            print "Protected: cannot delete ",s.ctx.show(),s.name
+                           
+    def showContext(self):
+        return ["Current Context: "+ self.curctx.show(),
+             "Context Path   : "+",".join([c.show() for c in self.ctxpth]),
+             "Context List   : "+",".join(sorted(self.ctxtab.keys()))]
+             
+    def showSymbol(self,q=0):
+        s = ["Number of defined symbols :"+format(len(self.symtab),'4d')]
+        if q>=1:
+            s += [self.symtab[k].show(2*q-2) for k in sorted(self.symtab)]
+        return s
+   
     def inpLoop(self,init=title):
         print init
         while True :                    # infinite loop
@@ -117,9 +140,9 @@ class System(object):
             print "Out["+str(self.inpnum)+"]= "+ouexp.show()
 
 class Context(object):
-    def __init__(self,nam):      # new context: name
+    def __init__(self,nam):     # new context: name
         self.name = nam                 # symbol name
-    def show(self):
+    def show(self):             # returns context name
         return self.name
  
 class Symbol(object):
@@ -129,9 +152,10 @@ class Symbol(object):
         self.flg  = Flag(f)             # flag initial value
         
     def operator(self,par):             # initilizes symbol operator (if any)
-        self.pre = par[1]               # par[1] is the precedence nuber (int)
-        self.opr = par[2]               # par[2] is the operator (str)
-        self.on(par[0])                 # par[0] is the type (in-,pre-,post-fix)
+        self.opt = par[0]               # par[0] is the operator type
+        self.pre = par[1]               # par[1] is the precedence number (int)
+        self.opr = par[2]               # par[2] is the operator string (str)
+        self.flg.on(oper)               # set flag
     
     def on(self,flgnam):
         self.flg.on(self.flg.number(flgnam))
@@ -152,24 +176,20 @@ class Symbol(object):
         t /= 2
         if t % 3 == 1:
             s += " Flags "+self.flg.binary()
-        if  (t/3) % 2 and self.flg.bit(infix | prefix):
-            if self.flg.bit(infix):
-                s +=" Infix "
-            else :
-                s +=" Prefix"           
-            s += "("+format(self.pre,'2d')+") "+format(self.opr,'4s')
+        if  (t/3) % 2 and self.flg.bit(oper):
+            s += " "+format(self.opt,'7s')+"("+format(self.pre,'2d')+") "+format(self.opr,'4s')
         if t % 3 == 2:
             s += " Flags: "+", ".join(self.flg.lis())    
         return s
 
 # variables defined as mask for flag value
-[delete,lock, prot, rdprot, temp, stub, func, nev1, nevr, neall, necom, neseq, num,\
- nnum1, nnumr, nnuma, const, lista, assoc, comm, idem, prefix, infix, pstfix,\
- val, dval, uval, defv ] = [2**i for i in range(28)]
+[lock, prot, rdprot, temp, stub, func, nev1, nevr, neall, necom, neseq, num, nnum1,
+ nnumr, nnuma, const, lista, assoc, comm, idem, oper, val,dval,uval,defv]\
+     = [2**i for i in range(25)]
 
 class Flag(object):
     names = []
-    fmt = '028b'
+    fmt = '025b'
     def __init__(self,f):
         if type(f) != int:
             f = self.number(f) # convert flag name(s) into number before
@@ -182,9 +202,9 @@ class Flag(object):
         return self.flag & f 
     def lis(self):
         return [self.names[i] for i in range(len(self.names)) if 2**i & self.flag]
-    def binary(self):           # output in binary format
+    def binary(self):               # output in binary format
         return format(self.flag,self.fmt)   
-    def index(self,n):          # find index given a flag name          
+    def index(self,n):              # find index given a flag name          
         return self.names.index(n)
     def number(self,nam):
         if type(nam) == str:
@@ -212,7 +232,7 @@ def init(fl,ctxt="Core`"):          # initializes system structures from file
         print ev
         sym = s.symbol(ev[1])       # gets symbol object (creating when necessary)
         for p in ev[2:] :
-            sym.select(p[1:])
+            sym.select(p)
     return s
         
         
