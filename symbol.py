@@ -124,10 +124,15 @@ class System(object):
             return s.pre                # this is operator priority
         return 100                      # default
         
+    def isAssoc(self,s) :               # finds associativity
+        if type(s) != Symbol :
+            s = self.symtab.get(s)
+        return s and s.flg.bit(assoc)
+
     def isOperator(self,op,typ) :       # finds if op is operator of certain type
         s = self.symtab.get(op)         # expecting op str
         return s and s.opr == op and s.opt == typ
-
+        
     def showContext(self):
         return ["Current Context: "+ self.curctx.show(),
              "Context Path   : "+",".join([c.show() for c in self.ctxpth]),
