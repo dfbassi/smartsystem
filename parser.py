@@ -15,7 +15,7 @@ import expr
 
 class Parse(object):
     def __init__(self,s):
-        self.sys = s                        # priority reference
+        self.sys = s                        # reference for operator functions
 
     def parseExpr(self,tk,pr=0):
         if tk.typ()== "newline" :           # leading newline eliminated
@@ -117,9 +117,7 @@ class Parse(object):
     def parseInfix(self,tk,e,pr):           # e contains possible first expression
         op = self.nextOp("Infix",tk,pr)     # next operator (if priority ≥ pr )
         while op :                              # try parsing second expression
-            print "op, e.head : ", op.val," ",e.head().val
             s = self.parseExpr(tk,self.sys.prior(op.val)+1) 
-            print "s  : ", s.val
             if s :
                 if e.head().val!=op.val or not self.sys.isAssoc(op.val):
                     f = e                       # e becomes first expression     
@@ -132,7 +130,6 @@ class Parse(object):
         return e
 
     def nextOp(self,typ,tk,pr):
-        print "nextOp tk,pr: ", tk.val(),pr
         if tk.impliedProd() and self.sys.prior("*") >= pr:
             return expr.Symbol("*")         # getting product with empty token
         if self.sys.isOperator(tk.val(),typ) and self.sys.prior(tk.val()) >= pr:

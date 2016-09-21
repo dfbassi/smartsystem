@@ -18,39 +18,63 @@ Created on Sat Sep 10 23:29:55 2016
 import sysfunc as sys
 import re
 import operator as op
+import tokenizer
+import parser
+import expr
 
 title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+\
       "\n\tby  Danilo Bassi"
 
 class System(object):
-    def __init__(self,c=None):      # defines a symbolic system with context
+    def __init__(self):      # defines symbolic system
         self.inpnum = 0             # counter for inputs (for a session)
         self.ctxtab = {}            # table of context with name as key
         self.symtab = {}            # table of symbol with name as key
-        self.ctxpth = []
-        if not self.isSymbol(c) :   # verification
-            c = 'Core`'             # valid default context
-        self.context(c)             # context object defined
-        self.setContext(c)          # initial current context
-        self.setContextPath([c])    # initial context search path list
+        self.ctxpth = []            # context list search
+        self.token = tokenizer.Token
+        self.parse = parser.Parse(self)
         
+    def config(self,st):            # initializes system structures from string   
+        e = self.ToExpr(st)             # list of initial expressions (native list)
+        self.setContext(e[0].value())   # initial context (e[0] a string)
+        Flag.names = e[1].value()[1:]   # flag names list initialized
+        for ei in  e[2:] :              # initial configuration for symbols
+            self.configSym(ei.value()[1:])
+
+    def ToExpr(self,st,h=None) :        # ToExpr converts string into an expression
+        tok = self.token(st)
+        if h == 1 :                     # Looking for one expression
+            exp = self.parse.parseExpr(tok)
+            if exp :
+                return exp
+            else :
+                return expr.Symbol("Null")
+        elif type(h) == str :           # Looking for all expressions
+            exp = expr.Compound(expr.Symbol(h)) # Compound expression head h
+        else :
+            exp = []                            # List of expressions
+        while tok.size() :
+            exp.append(self.parse.parseExpr(tok))
+        return exp
+                            
     def isSymbol(self,name):
         return re.match('[a-zA-Z$]',name)   # symbol names starts alphabetic
               
-    def context(self,name):                 # searches context, defning if needed
-        if type(name) == str and self.isSymbol(name):
+    def context(self,name):                 # searches context, defining if needed
+        if type(name) == str and self.isSymbol(name): # validity
             if name not in self.ctxtab:
                 self.ctxtab[name] = Context(name)
             return self.ctxtab[name]
    
     def setContext(self,name):              # defines new current context
-        if name in self.ctxtab:             # name must be in table
+        c = self.context(name)
+        if c:                               # name must be valid
             self.curctx = self.context(name)
             self.contextUpdate()
-            return self.curctx
+        return self.curctx
         
     def setContextPath(self,names):         # defines new search path
-        self.ctxpth = [self.context(n) for n in names if n in self.ctxtab]
+        self.ctxpth = [self.context(n) for n in names if self.context(n)]
         self.contextUpdate()
         
     def contextUpdate(self):                # defines full search list
@@ -116,7 +140,7 @@ class System(object):
                         self.symtab[name] = s1[0]
         else:
             print "Protected: cannot delete ",s.ctx.show(),name
-                          
+
     def prior(self,s):                  # finds priority number
         if type(s) != Symbol :
             s = self.symtab.get(s)
@@ -229,13 +253,11 @@ class Flag(object):
             return reduce(op.or_,[2**self.names.index(n) for n in nam])
         return 0
 
-def init(fl,ctxt="Core`"):          # initializes system structures from file
-    s = System(ctxt)                # system class instantiated with context
-    e = sys.Read(fl)                # list of initial expressions (native list)
-    Flag.names = e[0].value()[1:]   # flag names list initialized
-    for ei in  e[1:] :              # initial configuration for symbols
-        s.configSym(ei.value()[1:])
+def init(fl):                       # initializes system structures from file
+    s = System()                    # system instatiation
+    d = sys.ReadStr(fl)             # reads configuration data from file
+    s.config(d)
     return s
-        
+      
         
  
