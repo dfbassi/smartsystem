@@ -117,12 +117,16 @@ class System(object):
         else:
             print "Protected: cannot delete ",s.ctx.show(),name
                           
-    def prior(self,s):                  # find priority
+    def prior(self,s):                  # finds priority number
         if type(s) != Symbol :
             s = self.symtab.get(s)
         if s and s.flg.bit(oper) :      # operator
             return s.pre                # this is operator priority
         return 100                      # default
+        
+    def isOperator(self,op,typ) :       # finds if op is operator of certain type
+        s = self.symtab.get(op)         # expecting op str
+        return s and s.opr == op and s.opt == typ
 
     def showContext(self):
         return ["Current Context: "+ self.curctx.show(),
