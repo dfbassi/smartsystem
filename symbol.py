@@ -99,7 +99,7 @@ class System(object):
         else :
             print "configSym : not valid ", par[0]
 
-    def deleteSym(self,s):              # removes symbol from table
+    def deleteSym(self,s):              # removes symbol s from table
         if not s.flg.bit(prot) :        # not protected
             if s.flg.bit(oper) :
                 self.symtab.pop(s.opr,None)
@@ -115,8 +115,15 @@ class System(object):
                     if len(s1) == 1 :               # singleton
                         self.symtab[name] = s1[0]
         else:
-            print "Protected: cannot delete ",s.ctx.show(),s.name
-                           
+            print "Protected: cannot delete ",s.ctx.show(),name
+                          
+    def prior(self,s):                  # find priority
+        if type(s) != Symbol :
+            s = self.symtab.get(s)
+        if s and s.flg.bit(oper) :      # operator
+            return s.pre                # this is operator priority
+        return 100                      # default
+
     def showContext(self):
         return ["Current Context: "+ self.curctx.show(),
              "Context Path   : "+",".join([c.show() for c in self.ctxpth]),
@@ -212,27 +219,13 @@ class Flag(object):
         elif type(nam) == list and nam !=[]:
             return reduce(op.or_,[2**self.names.index(n) for n in nam])
         return 0
-    
-
-precedence = {";":1, "=":3, ":=":3, "+=":7, "-=":7, "*=":7, "/=":7,"~~":11,\
-          "||":21,"&&":23,"!":24,"==":28,"!=":28,"<":28,"<=":28,">":28,\
-          ">=":28, "+":31,"-":31, "*":38, "" :38, "/":39,"^":45,"<>":46}
-   
-def prior(v):
-    if v not in precedence:
-        return 100              # default value
-    return precedence[v]
 
 def init(fl,ctxt="Core`"):          # initializes system structures from file
     s = System(ctxt)                # system class instantiated with context
     e = sys.Read(fl)                # list of initial expressions (native list)
     Flag.names = e[0].value()[1:]   # flag names list initialized
-    for ei in  e[1:] :
-        ev = ei.value()
-        print ev
-        sym = s.symbol(ev[1])       # gets symbol object (creating when necessary)
-        for p in ev[2:] :
-            sym.select(p)
+    for ei in  e[1:] :              # initial configuration for symbols
+        s.configSym(ei.value()[1:])
     return s
         
         
