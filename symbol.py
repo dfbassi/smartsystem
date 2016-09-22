@@ -33,6 +33,7 @@ class System(object):
         self.ctxpth = []            # context list search
         self.token = tokenizer.Token
         self.parse = parser.Parse(self)
+        self.expre = expr.exprInit(self)
         
     def config(self,st):            # initializes system structures from string   
         e = self.ToExpr(st)             # list of initial expressions (native list)
@@ -43,16 +44,12 @@ class System(object):
 
     def ToExpr(self,st,h=None) :        # ToExpr converts string into an expression
         tok = self.token(st)
-        if h == 1 :                     # Looking for one expression
-            exp = self.parse.parseExpr(tok)
-            if exp :
-                return exp
-            else :
-                return expr.Symbol("Null")
-        elif type(h) == str :           # Looking for all expressions
-            exp = expr.Compound(expr.Symbol(h)) # Compound expression head h
+        if h == 1 :                     # looking for single expression
+            return self.parse.parse(tok)
+        elif type(h) == str :           # looking for all expressions
+            exp = self.expre.Sequence(self.expre.Symbol(h)) # sequence with head h
         else :
-            exp = []                            # List of expressions
+            exp = []                    # native list of expressions
         while tok.size() :
             exp.append(self.parse.parseExpr(tok))
         return exp
@@ -207,7 +204,9 @@ class Symbol(object):
         fun={"Operator":self.operator,"FlagOn":self.on,"FlagOff":self.off}
         fun[par[0]](par[1:])
 
-    def show(self,t=0):
+    def show(self,t=None):
+        if not t:
+            s = self.name
         if t % 2 == 0 :
             s = format(self.name,'10s')
         else:
