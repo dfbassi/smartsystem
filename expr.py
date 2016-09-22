@@ -13,6 +13,15 @@
 """
 import parseregex as pre
 
+def exprInit(s=None,rem=None) :         # Initialization of class parameters
+    print "Expr initialization :", s
+    e = Expr()
+    if s:                               # systen class defined
+        e.Symbol.sys = s
+    if rem :                            # optional definition of a list output format
+        e.Sequence.relis = pre.regex(rem)
+    return e
+
 class Expr(object):
 
     class Expression(object):           # parent class for expressions
@@ -101,11 +110,22 @@ class Expr(object):
             return '"'+self.val+'"'     # explicit display of braces for string
 
     class Symbol(Expression):
+        sys = None
+        def __init__(self,value):
+            if self.sys :
+                self.val = self.sys.symbol(value)
+            else :
+                self.val = value
+        def show(self):
+            if self.sys :
+                return self.val.show()
+            else :
+                return self.val
         def typ(self):
             return "Symbol"
 
     class Sequence(Expression):
-        relis = pre.regex(r"$\[($(,$)*)?\]")    # regula expression list   
+        relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
         def __init__(self,value):
             if value:
                 self.val = [value]
