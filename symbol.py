@@ -33,14 +33,16 @@ class System(object):
         self.ctxpth = []            # context list search
         self.token = tokenizer.Token
         self.parse = parser.Parse(self)
-        self.expre = expr.exprInit(self)
+        self.expre = expr.exprInit()# safe mode (symbols kept as strings)
         
     def config(self,st):            # initializes system structures from string   
         e = self.ToExpr(st)             # list of initial expressions (native list)
         self.setContext(e[0].value())   # initial context (e[0] a string)
+        self.setContextPath([e[0].value()])
         Flag.names = e[1].value()[1:]   # flag names list initialized
         for ei in  e[2:] :              # initial configuration for symbols
             self.configSym(ei.value()[1:])
+        self.expre = expr.exprInit(self)
 
     def ToExpr(self,st,h=None) :        # ToExpr converts string into an expression
         tok = self.token(st)
@@ -55,7 +57,7 @@ class System(object):
         return exp
                             
     def isSymbol(self,name):
-        return re.match('[a-zA-Z$]',name)   # symbol names starts alphabetic
+        return re.match('[a-zA-Z$]',name)   # symbol names start alphabetic
               
     def context(self,name):                 # searches context, defining if needed
         if type(name) == str and self.isSymbol(name): # validity
@@ -206,7 +208,7 @@ class Symbol(object):
 
     def show(self,t=None):
         if not t:
-            s = self.name
+            return self.name
         if t % 2 == 0 :
             s = format(self.name,'10s')
         else:

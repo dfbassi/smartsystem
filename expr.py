@@ -14,7 +14,6 @@
 import parseregex as pre
 
 def exprInit(s=None,rem=None) :         # Initialization of class parameters
-    print "Expr initialization :", s
     e = Expr()
     if s:                               # systen class defined
         e.Symbol.sys = s
@@ -135,6 +134,8 @@ class Expr(object):
             return "Sequence"
         def value(self) :
             return [e.value() for e in self.val]
+        def append(self,value):
+            self.val.append(value)
         def prepend(self,value):
             self.val.insert(0,value)
         def pop(self,pos=-1):
