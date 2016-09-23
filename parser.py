@@ -11,11 +11,19 @@
     Parser Class
 
 """
-import expr
 
 class Parse(object):
     def __init__(self,s):
-        self.sys = s                        # reference for operator functions
+        self.sys = s                        # system instantiation: token, expr
+        
+    def parse(self,par):
+        if type(par) == str :               # string as parameter
+            par = self.sys.token(par)
+        exp = self.parseExpr(par)           # expression is parsed
+        if exp :                            # verification
+            return exp
+        else:
+            return self.sys.expre.Symbol('Null')
 
     def parseExpr(self,tk,pr=0):
         if tk.typ()== "newline" :           # leading newline eliminated
@@ -41,12 +49,12 @@ class Parse(object):
     def parseNumber(self,tk):
         if tk.typ() == "number" :           # parsing a number
             if '.' in tk.val() :            # test for float
-                return expr.Real(tk.popVal())
-            return expr.Integer(tk.popVal())
+                return self.sys.expre.Real(tk.popVal())
+            return self.sys.expre.Integer(tk.popVal())
         
     def parseString(self,tk):
         if tk.typ() == "string" :           # parsing a string
-            return expr.String(tk.popVal())
+            return self.sys.expre.String(tk.popVal())
 
     def parseSymb(self,tk):
         while True:
@@ -61,12 +69,12 @@ class Parse(object):
 
     def parseName(self,tk):
         if tk.typ() == "name" :             # parsing symbol name
-            return expr.Symbol(tk.popVal())
+            return self.sys.expre.Symbol(tk.popVal())
 
     def parseList(self,tk) :
         e = self.parseLimSeq(tk,'{','}')    # try parsing a list:{e1,e2,..}
         if e :
-            e.prepend(expr.Symbol("List"))  # converting into expression List
+            e.prepend(self.sys.expre.Symbol("List"))  # converting into expression List
             return e
 
     def parseSymbTail(self,tk,h) :          # h is the head, so far
@@ -77,7 +85,7 @@ class Parse(object):
         e = self.parseLimSeq(tk,'[[',']]')  # try parsing part list: [[n1,n2,...]]
         if e :
             e.prepend(h)
-            e.prepend(expr.Symbol("Part"))
+            e.prepend(self.sys.expre.Symbol("Part"))
             return self.parseSymbTail(tk,e) # try parsing symbol tail (current exp)
         return h                                # no tail: returning head (h)
 
@@ -92,7 +100,7 @@ class Parse(object):
             return e                        # sequence returned
         
     def parseSeq(self,tk):
-        return self.parseSeqTail(tk,expr.Compound(self.parseExpr(tk)))
+        return self.parseSeqTail(tk,self.sys.expre.Sequence(self.parseExpr(tk)))
 
     def parseSeqTail(self,tk,e):
         while tk.val()== ',' :              # delimiter comparison
@@ -121,7 +129,7 @@ class Parse(object):
             if s :
                 if e.head().val!=op.val or not self.sys.isAssoc(op.val):
                     f = e                       # e becomes first expression     
-                    e = expr.Compound(op)       # op head of expression sequence
+                    e = self.sys.expre.Sequence(op)# op head of expression sequence
                     e.append(f)                 # adding first expression  
                 e.append(s)                     # adding second  expression
             else :
@@ -131,7 +139,6 @@ class Parse(object):
 
     def nextOp(self,typ,tk,pr):
         if tk.impliedProd() and self.sys.prior("*") >= pr:
-            return expr.Symbol("*")         # getting product with empty token
+            return self.sys.expre.Symbol("*")   # getting product with empty token
         if self.sys.isOperator(tk.val(),typ) and self.sys.prior(tk.val()) >= pr:
-            return expr.Symbol(tk.popVal()) # getting next operator
-
+            return self.sys.expre.Symbol(tk.popVal()) # getting next operator
