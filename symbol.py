@@ -173,18 +173,22 @@ class System(object):
         return ["Current Context: "+ self.curctx.show(),
              "Context Path   : "+",".join([c.show() for c in self.ctxpth]),
              "Context List   : "+",".join(sorted(self.ctxtab.keys()))]
-             
-    def showSymbol(self,q=0,ctx=None):
+
+    def symList(self):
+        f = lambda e: e if type(e)==list else [e]
+        s0 = [f(self.symtab[k]) for k in sorted(self.symtab) if self.isSymbol(k)]
+        return [e for u in s0 for e in u]
+        
+    def show(self,q=0,ctx=None):
         if type(ctx) != list:           # symbol list for single context
             if type(ctx) == str:        # string converted into context symbol
                 ctx = self.context(ctx)
             if not ctx:                 # default is current context
-                ctx = self.curctx            
-            n = [self.symtab[k].ctx for k in sorted(self.symtab) if self.isSymbol(k)].count(ctx)
-            s = ["Symbols in "+ctx.show()+" : "+format(n,'4d')]
+                ctx = self.curctx
+            u = self.symList()
+            s = ["Symbols in "+ctx.show()+" :"+format([e.ctx for e in u].count(ctx),'5d')]
             if q>=1:
-                s += [self.symtab[k].show(2*q-2) for k in sorted(self.symtab) \
-                      if self.isSymbol(k) and self.symtab[k].ctx == ctx]
+                s += [e.show(2*q-2) for e in u if e.ctx == ctx]
             return s
         elif ctx == []:                 # default: full context list
             ctx = [self.ctxtab[k] for k in sorted(self.ctxtab.keys())]
