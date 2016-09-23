@@ -30,7 +30,7 @@ class Expr(object):
             return "Expression"
         def value(self):                # gives value in native type (no conversion)
             return self.val
-        def show(self):                 # gives value contained in a string
+        def show(self):                 # gives value contained in a string (default)
             return self.val
         def head(self):
             return Expr.Symbol(self.typ())
@@ -111,7 +111,7 @@ class Expr(object):
     class Symbol(Expression):
         sys = None
         def __init__(self,value):
-            if self.sys :
+            if type(value) == str and self.sys :
                 self.val = self.sys.symbol(value)
             else :
                 self.val = value
