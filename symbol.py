@@ -34,12 +34,10 @@ class System(object):
         self.token = tokenizer.Token    # tokenizer function access
         self.parse = parser.Parse(self) # parser object
         self.expre = expr.exprInit()    # express object (safe mode, no symbol class)
-        self.List  = Symbol('List','')  # symbol List
-        self.Null  = Symbol('Null','')  # symbol Null
         
     def config(self,st):                # initializes system structures from string   
-        e = self.ToExpr(st,self.List)   # initial expression list
-        v = self.ToList(e,'List')       # conversion into list
+        e = self.ToExpr(st,'List')      # initial expression list
+        v = self.ToList(e,'List')       # conversion into native list
         self.setContext(v[0])           # initial context (v[0] a string)
         self.setContextPath([v[0]])
         Flag.names = v[1]               # flag names list initialized, list v[1]
@@ -53,10 +51,10 @@ class System(object):
         tok = self.token(st)            # st: input string, hd: head symbol
         if not hd :                     # looking for single expression (no head)
             return self.parse.parse(tok) 
-        exp = self.expre.Sequence(self.expre.Symbol(hd)) # sequence with head h (symbol)
+        exp = self.expre.Sequence(self.expre.Symbol(hd)) # sequence with head hd (symbol)
         while tok.size() :
             exp.append(self.parse.parse(tok))
-        return self.expre.Symbol(hd)
+        return exp
         
     def ToList(self,e,hd='List') :      # ToList converts expressions into native list
         if e.typ() != 'Sequence' :      # head maybe deleted
@@ -68,9 +66,12 @@ class System(object):
             v.pop(0)
         return v
                             
-    def isSymbol(self,name):
-        return re.match('[a-zA-Z$]',name)   # symbol names start alphabetic
-              
+    def isSymbol(self,name):                # symbol name (including possible context)
+        return re.match(r'([a-zA-Z$]\w*`)*[a-zA-Z$]\w*',name)
+
+    def isContext(self,name):               # context name (1 or more contexts)
+        return re.match(r'([a-zA-Z$]\w*`)+',name)     
+
     def context(self,name):                 # searches context, defining if needed
         if type(name) == str and self.isSymbol(name): # validity
             if name not in self.ctxtab:
@@ -173,12 +174,22 @@ class System(object):
              "Context Path   : "+",".join([c.show() for c in self.ctxpth]),
              "Context List   : "+",".join(sorted(self.ctxtab.keys()))]
              
-    def showSymbol(self,q=0):
-        s = ["Number of defined symbols :"+format(len(self.symtab),'4d')]
-        if q>=1:
-            s += [self.symtab[k].show(2*q-2) for k in sorted(self.symtab)]
-        return s
-   
+    def showSymbol(self,q=0,ctx=None):
+        if type(ctx) != list:           # symbol list for single context
+            if type(ctx) == str:        # string converted into context symbol
+                ctx = self.context(ctx)
+            if not ctx:                 # default is current context
+                ctx = self.curctx            
+            n = [self.symtab[k].ctx for k in sorted(self.symtab) if self.isSymbol(k)].count(ctx)
+            s = ["Symbols in "+ctx.show()+" : "+format(n,'4d')]
+            if q>=1:
+                s += [self.symtab[k].show(2*q-2) for k in sorted(self.symtab) \
+                      if self.isSymbol(k) and self.symtab[k].ctx == ctx]
+            return s
+        elif ctx == []:                 # default: full context list
+            ctx = [self.ctxtab[k] for k in sorted(self.ctxtab.keys())]
+        return [self.showSymbol(q,c) for c in ctx]
+            
     def inpLoop(self,init=title):
         print init
         while True :                    # infinite loop
@@ -219,13 +230,11 @@ class Symbol(object):
         fun[par[0]](par[1:])
 
     def show(self,t=None):
-        if not t:
+        if not t:                       # non formatted
             return self.name
-        if t % 2 == 0 :
-            s = format(self.name,'10s')
-        else:
-            s = ' '*10
-        s += "("+self.ctx.show()+")"
+        s = format(self.name,'10s')
+        if t % 2 == 1 :
+            s += "("+self.ctx.show()+")"
         t /= 2
         if t % 3 == 1:
             s += " Flags "+self.flg.binary()
