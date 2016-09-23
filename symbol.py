@@ -27,34 +27,46 @@ title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+
 
 class System(object):
     def __init__(self):      # defines symbolic system
-        self.inpnum = 0             # counter for inputs (for a session)
-        self.ctxtab = {}            # table of context with name as key
-        self.symtab = {}            # table of symbol with name as key
-        self.ctxpth = []            # context list search
-        self.token = tokenizer.Token
-        self.parse = parser.Parse(self)
-        self.expre = expr.exprInit()# safe mode (symbols kept as strings)
+        self.inpnum = 0                 # counter for inputs (for a session)
+        self.ctxtab = {}                # table of context with name as key
+        self.symtab = {}                # table of symbol with name as key
+        self.ctxpth = []                # context list search
+        self.token = tokenizer.Token    # tokenizer function access
+        self.parse = parser.Parse(self) # parser object
+        self.expre = expr.exprInit()    # express object (safe mode, no symbol class)
+        self.List  = Symbol('List','')  # symbol List
+        self.Null  = Symbol('Null','')  # symbol Null
         
-    def config(self,st):            # initializes system structures from string   
-        e = self.ToExpr(st)             # list of initial expressions (native list)
-        self.setContext(e[0].value())   # initial context (e[0] a string)
-        self.setContextPath([e[0].value()])
-        Flag.names = e[1].value()[1:]   # flag names list initialized
-        for ei in  e[2:] :              # initial configuration for symbols
-            self.configSym(ei.value()[1:])
+    def config(self,st):                # initializes system structures from string   
+        e = self.ToExpr(st,self.List)   # initial expression list
+        v = self.ToList(e,'List')       # conversion into list
+        self.setContext(v[0])           # initial context (v[0] a string)
+        self.setContextPath([v[0]])
+        Flag.names = v[1]               # flag names list initialized, list v[1]
+        for vi in  v[2:] :              # initial configuration for symbols
+            self.configSym(vi)
         self.expre = expr.exprInit(self)
+        self.List = self.symbol('List')
+        self.Null = self.symbol('Null')
 
-    def ToExpr(self,st,h=None) :        # ToExpr converts string into an expression
-        tok = self.token(st)
-        if h == 1 :                     # looking for single expression
-            return self.parse.parse(tok)
-        elif type(h) == str :           # looking for all expressions
-            exp = self.expre.Sequence(self.expre.Symbol(h)) # sequence with head h
-        else :
-            exp = []                    # native list of expressions
+    def ToExpr(self,st,hd=None) :       # ToExpr converts string into an expression
+        tok = self.token(st)            # st: input string, hd: head symbol
+        if not hd :                     # looking for single expression (no head)
+            return self.parse.parse(tok) 
+        exp = self.expre.Sequence(self.expre.Symbol(hd)) # sequence with head h (symbol)
         while tok.size() :
-            exp.append(self.parse.parseExpr(tok))
-        return exp
+            exp.append(self.parse.parse(tok))
+        return self.expre.Symbol(hd)
+        
+    def ToList(self,e,hd='List') :      # ToList converts expressions into native list
+        if e.typ() != 'Sequence' :      # head maybe deleted
+            if e.typ() != 'Symbol' or type(e.value())==str :
+                return e.value()                # atom type (or symbol string)
+            return e.value().show()             # if symbol pointer   
+        v = [self.ToList(ei,hd) for ei in e.val]
+        if v[0] == hd:
+            v.pop(0)
+        return v
                             
     def isSymbol(self,name):
         return re.match('[a-zA-Z$]',name)   # symbol names start alphabetic
@@ -187,7 +199,7 @@ class Context(object):
 class Symbol(object):
     def __init__(self,nam,ct,f=0):      # new symbol: name, context, flags
         self.name = nam                 # symbol name
-        self.ctx  = ct                  # context number
+        self.ctx  = ct                  # context symbol
         self.flg  = Flag(f)             # flag initial value
         
     def operator(self,par):             # initilizes symbol operator (if any)
