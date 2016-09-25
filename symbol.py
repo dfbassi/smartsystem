@@ -26,7 +26,7 @@ title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+
       "\n\tby  Danilo Bassi"
 
 class System(object):
-    def __init__(self):      # defines symbolic system
+    def __init__(self):             # defines symbolic system
         self.inpnum = 0                 # counter for inputs (for a session)
         self.ctxtab = {}                # table of context with name as key
         self.symtab = {}                # table of symbol with name as key
@@ -35,7 +35,7 @@ class System(object):
         self.parse = parser.Parse(self) # parser object
         self.expre = expr.exprInit()    # express object (safe mode, no symbol class)
         
-    def config(self,st):                # initializes system structures from string   
+    def config(self,st):            # initializes system structures from string   
         e = self.ToExpr(st,'List')      # initial expression list
         v = self.ToList(e,'List')       # conversion into native list
         self.setContext(v[0])           # initial context (v[0] a string)
@@ -47,7 +47,7 @@ class System(object):
         self.List = self.symbol('List')
         self.Null = self.symbol('Null')
 
-    def ToExpr(self,st,hd=None) :       # ToExpr converts string into an expression
+    def ToExpr(self,st,hd=None) :   # converts string into an expression
         tok = self.token(st)            # st: input string, hd: head symbol
         if not hd :                     # looking for single expression (no head)
             return self.parse.parse(tok) 
@@ -56,11 +56,11 @@ class System(object):
             exp.append(self.parse.parse(tok))
         return exp
         
-    def ToList(self,e,hd='List') :      # ToList converts expressions into native list
-        if e.typ() != 'Sequence' :      # head maybe deleted
+    def ToList(self,e,hd='List') :  # ToList converts expressions into native list
+        if e.typ() != 'Sequence' :          # head maybe deleted
             if e.typ() != 'Symbol' or type(e.value())==str :
-                return e.value()                # atom type (or symbol string)
-            return e.value().show()             # if symbol pointer   
+                return e.value()            # atom type (or symbol string)
+            return e.value().show()         # if symbol pointer (returns name)  
         v = [self.ToList(ei,hd) for ei in e.val]
         if v[0] == hd:
             v.pop(0)
@@ -99,7 +99,7 @@ class System(object):
         if not self.isSymbol(name) :    # search for possible operator
             return self.symtab.get(name)
         else :                          # name is valid for  symbol
-            ctx = self.ctxsearch[:]     # default search: copy
+            ctx = self.ctxsearch[:]         # default search: copy
             if '`' in name :                # name with context
                 names = name.rsplit('`',1)      # finding parts
                 name = names[1]                 # pure symbol name (second)
@@ -125,8 +125,8 @@ class System(object):
                 self.symtab[name] = s           # first entry for symbol name
                 return s
                 
-    def configSym(self,par) :       # config symbol data, par is a list 
-        s = self.symbol(par[0])         # par[0] is symbol name
+    def configSym(self,par) :           # config symbol data, par is a list 
+        s = self.symbol(par[0])             # par[0] is symbol name
         if s:
             for pi in par[1:] :             # par[1]... list for Symbl.select
                 s.select(pi)
@@ -168,7 +168,7 @@ class System(object):
     def isOperator(self,op,typ) :       # finds if op is operator of certain type
         s = self.symtab.get(op)         # expecting op str
         return s and s.opr == op and s.opt == typ
-        
+
     def showContext(self):
         return ["Current Context: "+ self.curctx.show(),
              "Context Path   : "+",".join([c.show() for c in self.ctxpth]),
@@ -206,9 +206,9 @@ class System(object):
             print "Out["+str(self.inpnum)+"]= "+ouexp.show()
 
 class Context(object):
-    def __init__(self,nam):     # new context: name
+    def __init__(self,nam):             # new context: name
         self.name = nam                 # symbol name
-    def show(self):             # returns context name
+    def show(self):                     # returns context name
         return self.name
  
 class Symbol(object):
@@ -248,7 +248,7 @@ class Symbol(object):
             s += " Flags: "+", ".join(self.flg.lis())    
         return s
 
-# variables defined as mask for flag value
+# variables defined flags (1 bit power 2)
 [lock, prot, rdprot, temp, stub, func, nev1, nevr, neall, necom, neseq, num, nnum1,
  nnumr, nnuma, const, lista, assoc, comm, idem, oper, val,dval,uval,defv]\
      = [2**i for i in range(25)]

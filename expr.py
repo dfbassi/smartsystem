@@ -173,10 +173,12 @@ class Expr(object):
                     self.val = [e.replev(e2,e2,n-1,m) for e in self.val]
             return self
         def match(self,e) :
-            for i in self.val:
-                if not i.match(e):
-                    return False
-            return True
+            if self.length() == e.length():     # length must be the same
+                for i in range(self.length()):
+                    if not self.val[i].match(e.val[i]):
+                        return False
+                return True
+            return False
         def append(self,value):
             self.val.append(value)
         def prepend(self,value):
