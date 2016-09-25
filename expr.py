@@ -58,12 +58,15 @@ class Expr(object):
                 return self.head()
         def replpart(self,e,p):         # replaces pth part (only sequences)          
             pass
-        def replace(self,e1,e2):        # replaces expr if matches e1 with e2
+        def replace(self,e1,e2):        # replaces expr if self matches e1 with e2
             if self.match(e1):
                 return e2.copy()        # returns a copy of e2
             else:
                 return self
+        def replev(self,e1,e2,n,m):     # replaces expr if matches e1 with e2
+            return self.replace(e1,e2)
         def match(self,e):
+            print "match item :", self.show()," ",e.show()
             return self.val==e.val      
         def tree(self):
             return (self.show(),len(self.show()))
@@ -166,15 +169,15 @@ class Expr(object):
         def replev(self,e1,e2,n,m=1):   # replaces
             if n==0 :
                 return self.replace(e1,e2)
-            if not self.isatom():
-                if m==0:
-                    self.val = self.val[0]+[e.replev(e2,e2,n-1,m) for e in self.val[1:]]
+            if not self.isAtom():            
+                if m==1:
+                    self.val = [self.val[0]]+[e.replev(e1,e2,n-1,m) for e in self.val[1:]]
                 else:
-                    self.val = [e.replev(e2,e2,n-1,m) for e in self.val]
+                    self.val = [e.replev(e1,e2,n-1,m) for e in self.val]
             return self
         def match(self,e) :
             if self.length() == e.length():     # length must be the same
-                for i in range(self.length()):
+                for i in range(len(self.val)):
                     if not self.val[i].match(e.val[i]):
                         return False
                 return True
