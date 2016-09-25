@@ -20,9 +20,19 @@ def exprInit(s=None,rem=None) :         # Initialization of class parameters
     if rem :                            # optional definition of a list output format
         e.Sequence.relis = pre.regex(rem)
     return e
-    
+   
 class Expr(object):
-
+    def __init__(self):
+        self.select={str:self.String,int:self.Integer,float:self.Real,bool:self.boolean}
+    def toExpr(self,x):
+        if type(x) !=list:
+            return self.select[type(x)](x)
+        return self.Sequence([self.Symbol('List')]+[self.toExpr(i) for i in x])
+    def boolean(self,x):
+        if x:
+            return self.Symbol('True')
+        return self.Symbol('False')
+    
     class Expression(object):           # parent class for expressions
         def __init__(self,value):
             self.val = value
@@ -43,8 +53,18 @@ class Expr(object):
             return 0
         def dim(self):
             return []
+        def part(self,p):
+            if p==0:
+                return self.head()
         def replpart(self,e,p):         # replaces pth part (only sequences)          
             pass
+        def replace(self,e1,e2):        # replaces expr if matches e1 with e2
+            if self.match(e1):
+                return e2.copy()        # returns a copy of e2
+            else:
+                return self
+        def match(self,e):
+            return self.val==e.val      
         def tree(self):
             return (self.show(),len(self.show()))
         def printTree(self):
@@ -126,16 +146,14 @@ class Expr(object):
                 return d0+d[0]
             return d          
         def part(self,p):
-            if type(p)==list:
-                p1=p[1:]
-                p =p[0]
-            else:
-                p1 = []               
-            if 0 <=p<= self.length():
-                if not p1:
+            if type(p)!=list:
+                if 0 <=p<= self.length():
                     return self.val[p]
-                else: 
-                    return self.part(self,p1)            
+                else:
+                    return None
+            if len(p)==1:
+                return self.part(p[0])
+            return self.part(p[0]).part(p[1:])
         def replpart(self,e,p):         # replaces pth part with copy of e             
             if type(p)==list:
                 if len(p)>1 :
@@ -145,6 +163,20 @@ class Expr(object):
                     p=[0]
             if 0 <=p<= self.length():
                 self.val[p]=e.copy()
+        def replev(self,e1,e2,n,m=1):   # replaces
+            if n==0 :
+                return self.replace(e1,e2)
+            if not self.isatom():
+                if m==0:
+                    self.val = self.val[0]+[e.replev(e2,e2,n-1,m) for e in self.val[1:]]
+                else:
+                    self.val = [e.replev(e2,e2,n-1,m) for e in self.val]
+            return self
+        def match(self,e) :
+            for i in self.val:
+                if not i.match(e):
+                    return False
+            return True
         def append(self,value):
             self.val.append(value)
         def prepend(self,value):
