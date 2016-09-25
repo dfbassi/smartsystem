@@ -49,8 +49,8 @@ class Parse(object):
     def parseNumber(self,tk):
         if tk.typ() == "number" :           # parsing a number
             if '.' in tk.val() :            # test for float
-                return self.sys.expre.Real(tk.popVal())
-            return self.sys.expre.Integer(tk.popVal())
+                return self.sys.expre.Real(float(tk.popVal()))
+            return self.sys.expre.Integer(int(tk.popVal()))
         
     def parseString(self,tk):
         if tk.typ() == "string" :           # parsing a string
