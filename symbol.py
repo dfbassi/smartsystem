@@ -33,39 +33,27 @@ class System(object):
         self.ctxpth = []                # context list search
         self.token = tokenizer.Token    # tokenizer function access
         self.parse = parser.Parse(self) # parser object
-        self.expre = expr.exprInit()    # express object (safe mode, no symbol class)
+        self.expre = expr.Expr()        # express object (safe mode, no symbol table)
         
     def config(self,st):            # initializes system structures from string   
-        e = self.ToExpr(st,'List')      # initial expression list
-        v = self.ToList(e,'List')       # conversion into native list
+        e = self.ToExpr(st,self.List)   # initial expression list
+        v = self.expre.ToBase(e,self.List)# conversion into base list and types
         self.setContext(v[0])           # initial context (v[0] a string)
         self.setContextPath([v[0]])
         Flag.names = v[1]               # flag names list initialized, list v[1]
         for vi in  v[2:] :              # initial configuration for symbols
             self.configSym(vi)
-        self.expre = expr.exprInit(self)
-        self.List = self.symbol('List')
-        self.Null = self.symbol('Null')
+        self.expre = expr.Expr(self)    # new expre object using symbol table
 
     def ToExpr(self,st,hd=None) :   # converts string into an expression
-        tok = self.token(st)            # st: input string, hd: head symbol
+        tok = self.token(st)            # st: input string, hd: head expression (symbol)
         if not hd :                     # looking for single expression (no head)
             return self.parse.parse(tok) 
-        exp = self.expre.Sequence(self.expre.Symbol(hd)) # sequence with head hd (symbol)
+        exp = self.expre.Sequence(hd)   # sequence with head hd (symbol)
         while tok.size() :
             exp.append(self.parse.parse(tok))
         return exp
         
-    def ToList(self,e,hd='List') :  # ToList converts expressions into native list
-        if e.typ() != 'Sequence' :          # head maybe deleted
-            if e.typ() != 'Symbol' or type(e.value())==str :
-                return e.value()            # atom type (or symbol string)
-            return e.value().show()         # if symbol pointer (returns name)  
-        v = [self.ToList(ei,hd) for ei in e.val]
-        if v[0] == hd:
-            v.pop(0)
-        return v
-                            
     def isSymbol(self,name):                # symbol name (including possible context)
         return re.match(r'([a-zA-Z$]\w*`)*[a-zA-Z$]\w*',name)
 
