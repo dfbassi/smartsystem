@@ -13,26 +13,49 @@
 """
 import parseregex as pre
 
-def exprInit(s=None,rem=None) :         # Initialization of class parameters
-    e = Expr()
-    if s:                               # systen class defined (for symbol)
-        e.Symbol.sys = s
-    if rem :                            # optional definition of a list output format
-        e.Sequence.relis = pre.regex(rem)
-    return e
+sys = None
+
+class String(str):
+    def show(self):
+        return self
+        
+class System(object):
+    def symbol(self,name):              # name (as str) converted into string class
+        return String(name)
    
 class Expr(object):
-    def __init__(self):
+    def __init__(self,s=None,rem=None):
+        global sys
+        if s:
+            sys = s
+        else :
+            sys = System()
+        sys.list = self.Symbol('List')
+        sys.null = self.Symbol('Null')
+        sys.true = self.Symbol('True')
+        sys.false= self.Symbol('False')
+        sys.rul  = self.Symbol('Rule')
+        if rem :                            # optional definition of a list output format
+            self.Sequence.relis = pre.regex(rem)
         self.select={str:self.String,int:self.Integer,float:self.Real,bool:self.boolean}
     def toExpr(self,x):
         if type(x) !=list:
             return self.select[type(x)](x)
-        return self.Sequence([self.Symbol('List')]+[self.toExpr(i) for i in x])
+        return self.Sequence([sys.list]+[self.toExpr(i) for i in x])
     def boolean(self,x):
         if x:
-            return self.Symbol('True')
-        return self.Symbol('False')
-    
+            return sys.true
+        return sys.false
+    def ToBase(self,e,hd='List') :  # converts expressions into base list & types
+        if e.typ() != 'Sequence' :          # head maybe deleted
+            if e.typ() != 'Symbol' :
+                return e.value()            # atom type (or symbol string)
+            return e.val.show()             # if symbol pointer (returns name)  
+        v = [self.ToBase(ei,hd) for ei in e.val]
+        if v[0] == hd:
+            v.pop(0)
+        return v
+                              
     class Expression(object):           # parent class for expressions
         def __init__(self,value):
             self.val = value
@@ -47,8 +70,8 @@ class Expr(object):
             return Expr.Symbol(self.typ())
         def isAtom(self):
             return True
-        def copy(self):                 # returns a deep copy of expression
-            return Expr.Expression(self.value())
+        def copy(self):                 # returns itself for atom expressions
+            return self
         def length(self):               # returns length of expression (default 0)
             return 0
         def dim(self):
@@ -58,13 +81,13 @@ class Expr(object):
                 return self.head()
         def replpart(self,e,p):         # replaces pth part (only sequences)          
             pass
-        def replace(self,e1,e2):        # replaces expr if self matches e1 with e2
-            if self.match(e1):
-                return e2.copy()        # returns a copy of e2
-            else:
-                return self
-        def replev(self,e1,e2,n,m):     # replaces expr if matches e1 with e2
-            return self.replace(e1,e2)
+        def replace(self,rul):          # rul r[0] -> r[1] replaces matching lhs
+            for r in rul:
+                if self.match(r[1]):    # first match returns a copy of rhs of rule
+                    return rul[2].copy()
+            return self
+        def replev(self,rul,n,m):       # replev uses replace for atom expressions
+            return self.replace(rul)
         def match(self,e):
             print "match item :", self.show()," ",e.show()
             return self.val==e.val      
@@ -82,41 +105,26 @@ class Expr(object):
             return "Integer"
         def show(self):
             return str(self.val)
-        def copy(self):
-            return Expr.Integer(self.val)
   
     class Real(Expression):       
         def typ(self):
             return "Real"
         def show(self):
             return str(self.val)
-        def copy(self):
-            return Expr.Real(self.val)
 
     class String(Expression):
         def typ(self):
             return "String"
         def show(self):
-            return '"'+self.val+'"'     # explicit display of braces for string
-        def copy(self):
-            return Expr.String(self.val)
+            return '"'+self.val+'"'     # string enclosed on quotes
 
     class Symbol(Expression):
-        sys = None
         def __init__(self,value):
-            if type(value) == str and self.sys :
-                self.val = self.sys.symbol(value)
-            else :
-                self.val = value
+            self.val = sys.symbol(value)
         def typ(self):
             return "Symbol"
         def show(self):
-            if self.sys :
-                return self.val.show()
-            else :
-                return self.val
-        def copy(self):
-            return Expr.Symbol(self.val)
+            return self.val.show()
 
     class Sequence(Expression):
         relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
@@ -132,11 +140,11 @@ class Expr(object):
     # Functions for SMARTS
         def show(self):
             return showList(self.relis,[e.show() for e in self.val])
-        def head(self):                 # expression
+        def head(self):                 # heado of expression: v[0]
             return self.val[0]
         def isAtom(self):
             return False
-        def copy(self):
+        def copy(self):                 # structural copy
             return Expr.Sequence([e.copy() for e in self.val])      
         def length(self):               # returns length of expression (default 0)
             return len(self.val)-1
@@ -166,14 +174,14 @@ class Expr(object):
                     p=[0]
             if 0 <=p<= self.length():
                 self.val[p]=e.copy()
-        def replev(self,e1,e2,n,m=1):   # replaces
+        def replev(self,r,n,m=1):           # replaces using rule list r
             if n==0 :
-                return self.replace(e1,e2)
+                return self.replace(r)
             if not self.isAtom():            
                 if m==1:
-                    self.val = [self.val[0]]+[e.replev(e1,e2,n-1,m) for e in self.val[1:]]
+                    self.val = [self.val[0]]+[e.replev(r,n-1,m) for e in self.val[1:]]
                 else:
-                    self.val = [e.replev(e1,e2,n-1,m) for e in self.val]
+                    self.val = [e.replev(r,n-1,m) for e in self.val]
             return self
         def match(self,e) :
             if self.length() == e.length():     # length must be the same
