@@ -17,7 +17,7 @@ sys = None
 
 class String(str):
     def show(self):
-        return self
+        return str(self)
         
 class System(object):
     def symbol(self,name):              # name (as str) converted into string class
@@ -30,6 +30,7 @@ class Expr(object):
             sys = s
         else :
             sys = System()
+        print "sys : ",sys
         sys.list = self.Symbol('List')
         sys.null = self.Symbol('Null')
         sys.true = self.Symbol('True')
@@ -38,10 +39,12 @@ class Expr(object):
         if rem :                            # optional definition of a list output format
             self.Sequence.relis = pre.regex(rem)
         self.select={str:self.String,int:self.Integer,float:self.Real,bool:self.boolean}
-    def toExpr(self,x):
+    def toExpr(self,x,h=None):
+        if not h:
+            h = sys.list
         if type(x) !=list:
             return self.select[type(x)](x)
-        return self.Sequence([sys.list]+[self.toExpr(i) for i in x])
+        return self.Sequence([h]+[self.toExpr(i) for i in x])
     def boolean(self,x):
         if x:
             return sys.true
@@ -70,7 +73,7 @@ class Expr(object):
             return Expr.Symbol(self.typ())
         def isAtom(self):
             return True
-        def copy(self):                 # returns itself for atom expressions
+        def copy(self,n):               # returns itself for atom expressions
             return self
         def length(self):               # returns length of expression (default 0)
             return 0
@@ -81,13 +84,13 @@ class Expr(object):
                 return self.head()
         def replpart(self,e,p):         # replaces pth part (only sequences)          
             pass
-        def replace(self,rul):          # rul r[0] -> r[1] replaces matching lhs
+        def replace(self,rul,c):        # rul r[0] -> r[1] replaces matching lhs
             for r in rul:
                 if self.match(r[1]):    # first match returns a copy of rhs of rule
-                    return rul[2].copy()
+                    return r[2].copy(c)
             return self
-        def replev(self,rul,n,m):       # replev uses replace for atom expressions
-            return self.replace(rul)
+        def replev(self,rul,n,m,c):     # replev uses replace for atom expressions
+            return self.replace(rul,c)
         def match(self,e):
             print "match item :", self.show()," ",e.show()
             return self.val==e.val      
@@ -144,8 +147,11 @@ class Expr(object):
             return self.val[0]
         def isAtom(self):
             return False
-        def copy(self):                 # structural copy
-            return Expr.Sequence([e.copy() for e in self.val])      
+        def copy(self,n=0):             # copy, structural up to level n
+            if n:
+                return Expr.Sequence([e.copy(n-1) for e in self.val])
+            else:
+                return self
         def length(self):               # returns length of expression (default 0)
             return len(self.val)-1
         def dim(self):
@@ -165,31 +171,33 @@ class Expr(object):
             if len(p)==1:
                 return self.part(p[0])
             return self.part(p[0]).part(p[1:])
-        def replpart(self,e,p):         # replaces pth part with copy of e             
+        def replpart(self,e,p,c=-1):        # replaces pth part with copy of e             
             if type(p)==list:
                 if len(p)>1 :
-                    self.replpart(self.part(e,p[:-1]),p[-1])
+                    self.replpart(self.part(e,p[:-1]),p[-1],c)
                     return None
                 else:
                     p=[0]
             if 0 <=p<= self.length():
-                self.val[p]=e.copy()
-        def replev(self,r,n,m=1):           # replaces using rule list r
+                self.val[p]=e.copy(c)       #copy up to n depth
+        def replev(self,r,n,m=1,c=-1):      # replaces using rule list r at level n
             if n==0 :
-                return self.replace(r)
+                return self.replace(r,c)
             if not self.isAtom():            
                 if m==1:
-                    self.val = [self.val[0]]+[e.replev(r,n-1,m) for e in self.val[1:]]
+                    self.val = [self.val[0]]+[e.replev(r,n-1,m,c) for e in self.val[1:]]
                 else:
-                    self.val = [e.replev(r,n-1,m) for e in self.val]
+                    self.val = [e.replev(r,n-1,m,c) for e in self.val]
             return self
         def match(self,e) :
-            if self.length() == e.length():     # length must be the same
-                for i in range(len(self.val)):
-                    if not self.val[i].match(e.val[i]):
-                        return False
+            if self == e:                       # identical
                 return True
-            return False
+            if e.isAtom() or self.length() != e.length():  
+                return False                    # length must be the same
+            for i in range(len(self.val)):
+                if not self.val[i].match(e.val[i]):
+                    return False
+            return True
         def append(self,value):
             self.val.append(value)
         def prepend(self,value):
