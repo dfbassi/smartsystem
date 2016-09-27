@@ -193,6 +193,12 @@ class Expr(object):
                 else:
                     self.val = [e.replev(r,n-1,m,c) for e in self.val]
             return self
+        def replace(self,rul,c=-1):
+            for r in rul:
+                if self.match(r[1]):        # first match returns a copy of rhs of rule
+                    return r[2].copy(c)     # changes full expression
+            self.val = [e.replace(rul,c) for e in self.val]
+            return self
         def match(self,e) :
             if self == e:                   # identical
                 return True
