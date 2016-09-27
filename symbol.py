@@ -32,20 +32,20 @@ class System(object):
         self.symtab = {}                # table of symbol with name as key
         self.ctxpth = []                # context list search
         self.token = tokenizer.Token    # tokenizer function access
-        self.parse = parser.Parse(self) # parser object
-        self.expre = expr.Expr()        # express object (safe mode, no symbol table)
+        self.parse = parser.Parse(self) # Parse object
+        self.expre = expr.Expr()        # Expr object (safe mode, no symbol table)
         
     def config(self,st):            # initializes system structures from string   
-        e = self.ToExpr(st,self.List)   # initial expression list
-        v = self.expre.ToBase(e,self.List)# conversion into base list and types
+        e = self.strToExpr(st,self.expre.list)# initial expression list
+        v = e.toBase('List')            # conversion into base list and types
         self.setContext(v[0])           # initial context (v[0] a string)
         self.setContextPath([v[0]])
         Flag.names = v[1]               # flag names list initialized, list v[1]
         for vi in  v[2:] :              # initial configuration for symbols
             self.configSym(vi)
-        self.expre = expr.Expr(self)    # new expre object using symbol table
+        self.expre = expr.Expr(self)    # new Expr object using symbol table
 
-    def ToExpr(self,st,hd=None) :   # converts string into an expression
+    def strToExpr(self,st,hd=None): # converts string into an expression
         tok = self.token(st)            # st: input string, hd: head expression (symbol)
         if not hd :                     # looking for single expression (no head)
             return self.parse.parse(tok) 
@@ -180,7 +180,7 @@ class System(object):
             return s
         elif ctx == []:                 # default: full context list
             ctx = [self.ctxtab[k] for k in sorted(self.ctxtab.keys())]
-        return [self.showSymbol(q,c) for c in ctx]
+        return [self.show(q,c) for c in ctx]
             
     def inpLoop(self,init=title):
         print init

@@ -31,17 +31,17 @@ class Expr(object):
         else :
             sys = System()
         print "sys : ",sys
-        sys.list = self.Symbol('List')
-        sys.null = self.Symbol('Null')
-        sys.true = self.Symbol('True')
-        sys.false= self.Symbol('False')
-        sys.rul  = self.Symbol('Rule')
+        self.list = self.Symbol('List')
+        self.null = self.Symbol('Null')
+        self.true = self.Symbol('True')
+        self.false= self.Symbol('False')
+        self.rul  = self.Symbol('Rule')
         if rem :                            # optional definition of a list output format
             self.Sequence.relis = pre.regex(rem)
         self.select={str:self.String,int:self.Integer,float:self.Real,bool:self.boolean}
     def toExpr(self,x,h=None):
         if not h:
-            h = sys.list
+            h = self.list
         if type(x) !=list:
             return self.select[type(x)](x)
         return self.Sequence([h]+[self.toExpr(i) for i in x])
@@ -49,15 +49,6 @@ class Expr(object):
         if x:
             return sys.true
         return sys.false
-    def ToBase(self,e,hd='List') :  # converts expressions into base list & types
-        if e.typ() != 'Sequence' :          # head maybe deleted
-            if e.typ() != 'Symbol' :
-                return e.value()            # atom type (or symbol string)
-            return e.val.show()             # if symbol pointer (returns name)  
-        v = [self.ToBase(ei,hd) for ei in e.val]
-        if v[0] == hd:
-            v.pop(0)
-        return v
                               
     class Expression(object):           # parent class for expressions
         def __init__(self,value):
@@ -94,6 +85,10 @@ class Expr(object):
         def match(self,e):
             print "match item :", self.show()," ",e.show()
             return self.val==e.val      
+        def toBase(self,hd) :         # converts expressions into base list & types
+            return self.value()
+        def depth(self):
+            return 1
         def tree(self):
             return (self.show(),len(self.show()))
         def printTree(self):
@@ -126,6 +121,8 @@ class Expr(object):
             self.val = sys.symbol(value)
         def typ(self):
             return "Symbol"
+        def toBase(self,hd) :         # converts expressions into base types
+            return self.val.show()         # symbol returns name (as str)
         def show(self):
             return self.val.show()
 
@@ -143,17 +140,24 @@ class Expr(object):
     # Functions for SMARTS
         def show(self):
             return showList(self.relis,[e.show() for e in self.val])
-        def head(self):                 # heado of expression: v[0]
+        def toBase(self,hd='List') :    # converts expressions into base list & types
+            v = [e.toBase(hd) for e in self.val]
+            if v[0] == hd:
+                v.pop(0)
+            return v
+        def head(self):                 # head of expression: v[0]
             return self.val[0]
         def isAtom(self):
             return False
+        def depth(self):
+            return max([e.depth() for e in  self.val])+1
+        def length(self):               # returns length of expression (default 0)
+            return len(self.val)-1
         def copy(self,n=0):             # copy, structural up to level n
             if n:
                 return Expr.Sequence([e.copy(n-1) for e in self.val])
             else:
                 return self
-        def length(self):               # returns length of expression (default 0)
-            return len(self.val)-1
         def dim(self):
             if self.length() == 0:
                 return [0]
@@ -190,10 +194,10 @@ class Expr(object):
                     self.val = [e.replev(r,n-1,m,c) for e in self.val]
             return self
         def match(self,e) :
-            if self == e:                       # identical
+            if self == e:                   # identical
                 return True
             if e.isAtom() or self.length() != e.length():  
-                return False                    # length must be the same
+                return False                # length must be the same
             for i in range(len(self.val)):
                 if not self.val[i].match(e.val[i]):
                     return False
