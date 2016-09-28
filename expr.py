@@ -89,14 +89,10 @@ class Expr(object):
             return self.value()
         def depth(self):
             return 1
-        def tree(self):
+        def treewid(self):
             return (self.show(),len(self.show()))
-        def printTree(self):
-            tr = self.tree()
-            print level(tr,0)
-            for i in range(1, depth(tr)):
-                print line(tr,i)
-                print level(tr,i)        
+        def tree(self):
+            return printTree(self.treewid())
          
     class Integer(Expression):
         def typ(self):
@@ -129,10 +125,12 @@ class Expr(object):
     class Sequence(Expression):
         relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
         def __init__(self,value):
-            if type(value) != list:
-                self.val = [value]
-            else:
+            if type(value) == list:
                 self.val = value
+            elif value==None:
+                self.val = []
+            else:
+                self.val = [value]
         def typ(self):
             return "Sequence"
         def value(self) :
@@ -165,7 +163,7 @@ class Expr(object):
             d = [e.dim() for e in self.val[1:]]
             if d.count(d[0]) == d0[0]:
                 return d0+d[0]
-            return d          
+            return d0          
         def part(self,p):
             if type(p)!=list:
                 if 0 <=p<= self.length():
@@ -214,13 +212,15 @@ class Expr(object):
             self.val.insert(0,value)
         def pop(self,pos=-1):
             self.val.pop(pos)        
-        def tree(self):
-            s = [e.tree() for e in self.val]
+        def treewid(self):
+            s = [e.treewid() for e in self.val]
             w = sum(map(lambda x:x[1],s[1:])) + len(s)-2
             if w < s[0][1] and type(s[0][0])== str:
                 s.append( (" "*(s[0][1]-w-1),s[0][1]-w-1) )
                 w = s[0][1]
             return (s,w)          
+        def tree(self):
+            return printTree(self.treewid())
 
 # Functions definitions for show and tree
 
@@ -313,3 +313,10 @@ def depth(tre):
     if type(tre[0]) == str :
         return 1
     return max(map(depth,tre[0]))+1
+    
+def printTree(tre):
+    print level(tre,0)
+    for i in range(1, depth(tre)):
+        print line(tre,i)
+        print level(tre,i)        
+
