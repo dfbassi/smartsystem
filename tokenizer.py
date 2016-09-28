@@ -29,11 +29,11 @@ class Token(object):
     name   = r'[a-zA-Z$][\w`]*'         # Regular expression for different tokens
     strg   = r'\"[^\"]*\"'
     number = r'\d+\.?\d*'
-    oper   = r'[-^+*/!;]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}'
+    oper   = r'->|[-^+*/!;]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}|:>'
     delim  = r'[(){},]|\[{1,2}|\]{1,2}|\n(?!\Z|\n)'
     alltok = name +"|"+strg+"|"+number+"|"+delim+"|" + oper
     prefix = ["-","!"]
-    infix  = [";","|", "=", ":=", "+=", "-=", "*=", "/=","~~","||","&&", \
+    infix  = [";","|","->",":>", "=", ":=", "+=", "-=", "*=", "/=","~~","||","&&", \
               "==","===","!=","<","<=",">",">=","+","-","*", "/",".","^","<>"]
     postfix= ["!","&"]
     ledelim= ["(","{",r"[",r"[["]
@@ -45,22 +45,18 @@ class Token(object):
         self.q = Queue()                        # a queue is used
         self.tokens = re.findall(self.alltok,input)
         for t in self.tokens:
-            if re.match('[a-zA-Z$]', t[0]):     # Id name starts with letter
+            if re.match('[a-zA-Z$]', t[0]):     # symbol name starts with letter
                 self.q.enqueue((t,'name'))
-            elif re.match(r'\d', t[0]):         # Number starts with digit
+            elif re.match(r'\d', t[0]):         # number starts with digit
                 self.q.enqueue((t,'number'))
-            elif re.match(r'\"', t[0]):         # String starts with "
+            elif re.match(r'\"', t[0]):         # string starts with "
                 self.q.enqueue((t[1:-1],'string'))
-            elif re.match(r'[(){},\[\]]', t[0]):# delimiter
+            elif re.match(r'[(){},\[\]]', t[0]):# delimiters
                 self.q.enqueue((t,'delim'))
             elif re.match(r'\n', t[0]):         # new line
                 self.q.enqueue((t,'newline'))            
-            elif t in self.infix:               # infix operator
-                self.q.enqueue((t,'infix'))
-            elif t in self.pefix:               # prefix operator
-                self.q.enqueue((t,'prefix'))
-            elif t in self.postfix:             # postfix operator
-                self.q.enqueue((t,'postfix'))
+            else :                              # operator (default)
+                self.q.enqueue((t,'operator'))
     def val(self):                      # Actual token (top of queue)
         if not self.q.isEmpty() :
             return self.q.top()[0]
