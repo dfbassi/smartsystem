@@ -44,6 +44,7 @@ class System(object):
         for vi in  v[2:] :              # initial configuration for symbols
             self.configSym(vi)
         self.expre = expr.Expr(self)    # new Expr object using symbol table
+        print self.show()
 
     def strToExpr(self,st,hd=None): # converts string into an expression
         tok = self.token(st)            # st: input string, hd: head expression (symbol)
@@ -54,6 +55,9 @@ class System(object):
             exp.append(self.parse.parse(tok))
         return exp
         
+    def read(self,flname,hd=None):  # reads text from file converts into expression 
+        return self.strToExpr(sys.ReadStr(flname),hd)
+            
     def isSymbol(self,name):                # symbol name (including possible context)
         return re.match(r'([a-zA-Z$]\w*`)*[a-zA-Z$]\w*',name)
 
