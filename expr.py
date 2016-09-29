@@ -12,32 +12,45 @@
     
 """
 import parseregex as pre
+import tokenizer
 
-sys = None
+sys   = None
+relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
 
 class String(str):
-    def show(self):
+    def show(self,rl=None):
         return str(self)
         
 class System(object):
+    def __init__(self,exp):
+        self.expre = exp
+        self.token = tokenizer.Token
     def symbol(self,name):              # name (as str) converted into string class
         return String(name)
+    def isOperator(v,typ=None):
+        print "isOperator : ", v
+        return False
    
 class Expr(object):
     def __init__(self,s=None,rem=None):
         global sys
+        global relis
         if s:
             sys = s
         else :
-            sys = System()
+            sys = System(self)
         print "sys : ",sys
         self.list = self.Symbol('List')
         self.null = self.Symbol('Null')
         self.true = self.Symbol('True')
         self.false= self.Symbol('False')
-        self.rul  = self.Symbol('Rule')
+        self.part = self.Symbol('Part')
+        self.rul   = self.Symbol('->')
+        self.rulaft= self.Symbol(':>')
+        self.asgn  = self.Symbol('=')
+        self.asgaft= self.Symbol(':=')
         if rem :                            # optional definition of a list output format
-            self.Sequence.relis = pre.regex(rem)
+            relis = pre.regex(rem)
         self.select={str:self.String,int:self.Integer,float:self.Real,bool:self.boolean}
     def toExpr(self,x,h=None):
         if not h:
@@ -58,7 +71,7 @@ class Expr(object):
         def value(self):                # gives internal value (no conversion)
             return self.val
     # Functions for SMARTS
-        def show(self):                 # converts expression to string
+        def show(self,rl=None):         # converts expression to string
             return self.val
         def head(self):                 # gives the head of expression as expr
             return Expr.Symbol(self.typ())
@@ -97,19 +110,19 @@ class Expr(object):
     class Integer(Expression):
         def typ(self):
             return "Integer"
-        def show(self):
+        def show(self,rl=None):
             return str(self.val)
   
     class Real(Expression):       
         def typ(self):
             return "Real"
-        def show(self):
+        def show(self,rl=None):
             return str(self.val)
 
     class String(Expression):
         def typ(self):
             return "String"
-        def show(self):
+        def show(self,rl=None):
             return '"'+self.val+'"'     # string enclosed on quotes
 
     class Symbol(Expression):
@@ -119,55 +132,47 @@ class Expr(object):
             return "Symbol"
         def toBase(self,hd) :         # converts expressions into base types
             return self.val.show()         # symbol returns name (as str)
-        def show(self):
+        def show(self,rl=None):
             return self.val.show()
 
-    class Sequence(Expression):
-        relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
-        def __init__(self,value):
-            if type(value) == list:
-                self.val = value
-            elif value==None:
-                self.val = []
-            else:
-                self.val = [value]
+    class Sequence(list):
         def typ(self):
             return "Sequence"
         def value(self) :
-            return [e.value() for e in self.val]
+            return [e.value() for e in self]
     # Functions for SMARTS
-        def show(self):
-            return showList(self.relis,[e.show() for e in self.val])
+        def show(self,rl=relis):
+            return showList(rl,[e.show(rl) for e in self])
         def toBase(self,hd='List') :    # converts expressions into base list & types
-            v = [e.toBase(hd) for e in self.val]
+            v = [e.toBase(hd) for e in self]
             if v[0] == hd:
                 v.pop(0)
             return v
         def head(self):                 # head of expression: v[0]
-            return self.val[0]
+            return self[0]
         def isAtom(self):
             return False
         def depth(self):
-            return max([e.depth() for e in  self.val])+1
+            return max([e.depth() for e in  self])+1
         def length(self):               # returns length of expression (default 0)
-            return len(self.val)-1
+            return len(self)-1
         def copy(self,n=0):             # copy, structural up to level n
             if n:
-                return Expr.Sequence([e.copy(n-1) for e in self.val])
+                return Expr.Sequence([e.copy(n-1) for e in self])
             else:
                 return self
         def dim(self):
             if self.length() == 0:
                 return [0]
             d0 = [self.length()]
-            d = [e.dim() for e in self.val[1:]]
+            d = [e.dim() for e in self[1:]]
             if d.count(d[0]) == d0[0]:
                 return d0+d[0]
             return d0          
         def part(self,p):
             if type(p)!=list:
                 if 0 <=p<= self.length():
-                    return self.val[p]
+                    return self[p]
                 else:
                     return None
             if len(p)==1:
@@ -181,39 +186,37 @@ class Expr(object):
                 else:
                     p=[0]
             if 0 <=p<= self.length():
-                self.val[p]=e.copy(c)       #copy up to n depth
+                self[p]=e.copy(c)       #copy up to n depth
         def replev(self,r,n,m=1,c=-1):      # replaces using rule list r at level n
             if n==0 :
                 return self.replace(r,c)
             if not self.isAtom():            
                 if m==1:
-                    self.val = [self.val[0]]+[e.replev(r,n-1,m,c) for e in self.val[1:]]
+                    self = [self[0]]+[e.replev(r,n-1,m,c) for e in self[1:]]
                 else:
-                    self.val = [e.replev(r,n-1,m,c) for e in self.val]
+                    self = [e.replev(r,n-1,m,c) for e in self]
             return self
         def replace(self,rul,c=-1):
             for r in rul:
                 if self.match(r[1]):        # first match returns a copy of rhs of rule
                     return r[2].copy(c)     # changes full expression
-            self.val = [e.replace(rul,c) for e in self.val]
+            self = [e.replace(rul,c) for e in self]
             return self
         def match(self,e) :
             if self == e:                   # identical
                 return True
             if e.isAtom() or self.length() != e.length():  
                 return False                # length must be the same
-            for i in range(len(self.val)):
-                if not self.val[i].match(e.val[i]):
+            for i in range(len(self)):
+                if not self[i].match(e.val[i]):
                     return False
             return True
-        def append(self,value):
-            self.val.append(value)
-        def prepend(self,value):
-            self.val.insert(0,value)
         def pop(self,pos=-1):
-            self.val.pop(pos)        
+            self.pop(pos)
+        def prepend(self,value):
+            self.insert(0,value)
         def treewid(self):
-            s = [e.treewid() for e in self.val]
+            s = [e.treewid() for e in self]
             w = sum(map(lambda x:x[1],s[1:])) + len(s)-2
             if w < s[0][1] and type(s[0][0])== str:
                 s.append( (" "*(s[0][1]-w-1),s[0][1]-w-1) )
