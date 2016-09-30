@@ -17,6 +17,9 @@ import tokenizer
 sys   = None
 relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
 
+[lock,prot,rdprot,temp,stub,func,nev1,nevr,neall,necom,neseq,num,nnum1,nnumr,nnuma,const,lista,assoc,comm,idem,oper,rul,urul,defv]\
+     = [2**i for i in range(24)]
+
 class String(str):
     def show(self,rl=None):
         return str(self)
@@ -71,21 +74,25 @@ class Expr(object):
         def value(self):                # gives internal value (no conversion)
             return self.val
     # Functions for SMARTS
+    # Information & presentation functions
         def show(self,rl=None):         # converts expression to string
             return self.val
-        def head(self):                 # gives the head of expression as expr
-            return Expr.Symbol(self.typ())
         def isAtom(self):
             return True
-        def copy(self,n):               # returns itself for atom expressions
-            return self
-        def length(self):               # returns length of expression (default 0)
+        def length(self):               # gives length of expression (default 0)
             return 0
-        def dim(self):
+        def dim(self):                  # givess length of expression (default [])
             return []
+        def depth(self):                # gives depth 
+            return 1
+    # Structural functions
+        def head(self):                 # gives the head of expression as expr
+            return Expr.Symbol(self.typ())
         def part(self,p):
             if p==0:
                 return self.head()
+        def copy(self,n):               # returns itself for atom expressions
+            return self
         def replpart(self,e,p):         # replaces pth part (only sequences)          
             pass
         def replace(self,rul,c):        # rul r[0] -> r[1] replaces matching lhs
@@ -98,10 +105,10 @@ class Expr(object):
         def match(self,e):
             print "match item :", self.show()," ",e.show()
             return self.val==e.val      
-        def toBase(self,hd) :         # converts expressions into base list & types
+        def toBase(self,hd) :           # converts expressions into base list & types
             return self.value()
-        def depth(self):
-            return 1
+        def evalExpr(self):             # evaluation is for symbols
+            return self
         def treewid(self):
             return (self.show(),len(self.show()))
         def tree(self):
@@ -130,10 +137,35 @@ class Expr(object):
             self.val = sys.symbol(value)
         def typ(self):
             return "Symbol"
-        def toBase(self,hd) :         # converts expressions into base types
+        def toBase(self,hd) :           # converts expressions into base types
             return self.val.show()         # symbol returns name (as str)
         def show(self,rl=None):
             return self.val.show()
+        def finalHead(self):            #
+            return self.head()
+        def evalExpr(self):
+            if  self.val.bit(rul):      # has values
+                return self.replace(self.val.rules)
+            else:
+                return self
+      
+    class Native(Expression):
+        def __init__(self,value,argcount,argtype=None):
+            self.val = value
+            self.argc= argcount
+            self.argt= argtype
+        def typ(self):
+            return "Native"
+        def show(self,rl=None):
+            return str(self.val)
+        def evalfunlis(self,argn):
+            return reduce(self.val,argn)
+        def evalfun(self,arg1,arg2=None,arg3=None):
+            if arg2 == None :
+                return self.val(arg1)
+            elif arg3 == None :
+                return self.val(arg1,arg2)
+            return self.val(arg1,arg2,arg3)
 
     class Sequence(list):
         def typ(self):
@@ -141,21 +173,28 @@ class Expr(object):
         def value(self) :
             return [e.value() for e in self]
     # Functions for SMARTS
-        def show(self,rl=relis):
+    # Information & presentation functions
+        def show(self,rl=relis):        # converts into string
             return showList(rl,[e.show(rl) for e in self])
         def toBase(self,hd='List') :    # converts expressions into base list & types
             v = [e.toBase(hd) for e in self]
             if v[0] == hd:
                 v.pop(0)
             return v
-        def head(self):                 # head of expression: v[0]
-            return self[0]
         def isAtom(self):
             return False
         def depth(self):
             return max([e.depth() for e in  self])+1
         def length(self):               # returns length of expression (default 0)
             return len(self)-1
+    # Structural functions
+        def head(self):                 # head of expression: v[0]
+            return self[0]
+        def finalHead(self):            # searches for symbol head in compound heads
+            if self[0].typ()=="Sequence":
+                return self[0].finalHead()
+            else:
+                return self[0]
         def copy(self,n=0):             # copy, structural up to level n
             if n:
                 return Expr.Sequence([e.copy(n-1) for e in self])
@@ -200,7 +239,8 @@ class Expr(object):
             for r in rul:
                 if self.match(r[1]):        # first match returns a copy of rhs of rule
                     return r[2].copy(c)     # changes full expression
-            self = [e.replace(rul,c) for e in self]
+            for i in range(len(self)):
+                self[i] = self[i].replace(rul,c)
             return self
         def match(self,e) :
             if self == e:                   # identical
@@ -211,6 +251,15 @@ class Expr(object):
                 if not self[i].match(e.val[i]):
                     return False
             return True
+        def evalExpr(self):
+            for i in range(len(self)):
+                self[i] = self[i].evalExpr()
+            h = self.finalHead()
+            if  h.val.bit("DVals"):         # has values
+                return self.replace(self.val.rules)
+            else:
+                return self
+               
         def pop(self,pos=-1):
             self.pop(pos)
         def prepend(self,value):
@@ -224,6 +273,8 @@ class Expr(object):
             return (s,w)          
         def tree(self):
             return printTree(self.treewid())
+            
+
 
 # Functions definitions for show and tree
 
