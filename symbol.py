@@ -32,8 +32,8 @@ class System(object):
         self.symtab = {}                # table of symbol with name as key
         self.ctxpth = []                # context list search
         self.token = tokenizer.Token    # tokenizer function access
-        self.parse = parser.Parse(self) # Parse object
         self.expre = expr.Expr()        # Expr object (safe mode, no symbol table)
+        self.parse = parser.Parse(self) # Parse object
         
     def config(self,st):            # initializes system structures from string   
         e = self.strToExpr(st,self.expre.list)# initial expression list
@@ -50,7 +50,7 @@ class System(object):
         tok = self.token(st)            # st: input string, hd: head expression (symbol)
         if not hd :                     # looking for single expression (no head)
             return self.parse.parse(tok) 
-        exp = self.expre.Sequence(hd)   # sequence with head hd (symbol)
+        exp = self.expre.Sequence([hd]) # sequence with head hd (symbol)
         while tok.size() :
             exp.append(self.parse.parse(tok))
         return exp
@@ -185,7 +185,7 @@ class System(object):
         elif ctx == []:                 # default: full context list
             ctx = [self.ctxtab[k] for k in sorted(self.ctxtab.keys())]
         return [self.show(q,c) for c in ctx]
-            
+
     def inpLoop(self,init=title):
         print init
         while True :                    # infinite loop
@@ -224,7 +224,27 @@ class Symbol(object):
     def select(self,par):
         fun={"Operator":self.operator,"FlagOn":self.on,"FlagOff":self.off}
         fun[par[0]](par[1:])
-
+        
+    def evalcond(self,i) :
+        if self.flg.bit(neall) :
+            return False
+        return i==0 or i==1 and not self.flg.bit(nev1) or i>1 and not self.flg.bit(nevr)
+    
+    def addrul(self,e) :                # add a rule for symbol
+        if self.flg.bit(prot) :
+            print "Assign : symbol ",self.name," protected"
+            return None
+        if not self.flg.bit(rul) :      # no rules yet
+            self.rules = [e.replpart(self.expre.rulaft,0)]
+            self.flg.on(rul)       
+        else :                          # rules already
+            self.rules.insert(0,e.replpart(self.expre.rulaft,0))
+    
+    def clrrul(self) :                   # clear all rules
+        if not self.flg.bit(prot) :
+            self.rules = []
+            self.flg.off(rul)
+ 
     def show(self,t=None):
         if not t:                       # non formatted
             return self.name
@@ -241,17 +261,17 @@ class Symbol(object):
         return s
 
 # variables defined flags (1 bit power 2)
-[lock, prot, rdprot, temp, stub, func, nev1, nevr, neall, necom, neseq, num, nnum1,
- nnumr, nnuma, const, lista, assoc, comm, idem, oper, val,dval,uval,defv]\
-     = [2**i for i in range(25)]
+
+[lock,prot,rdprot,temp,stub,func,nev1,nevr,neall,necom,neseq,num,nnum1,nnumr,nnuma,const,lista,assoc,comm,idem,oper,rul,urul,defv]\
+     = [2**i for i in range(24)]
 
 class Flag(object):
     names = []
-    fmt = '025b'
+    fmt = '024b'
     def __init__(self,f):
         if type(f) != int:
-            f = self.number(f) # convert flag name(s) into number before
-        self.flag = f
+            f = self.number(f)  # convert flag name(s) into number before
+        self.flag  = f
     def on(self,f):                 # set flag
         self.flag |= f  
     def off(self,f):                # clear flag
@@ -263,7 +283,7 @@ class Flag(object):
     def binary(self):               # output in binary format
         return format(self.flag,self.fmt)   
     def index(self,n):              # find index given a flag name          
-        return self.names.index(n)
+        return self.name.index(n)
     def number(self,nam):
         if type(nam) == str:
             return 2**self.names.index(nam)
