@@ -20,9 +20,27 @@ def ReadStr(flname) :           # ReadStr reads file into a string
     fl.close()
     return s                    # returns string read
     
-def Eval(exp) :                 # Evaluation of expression
-    return exp
+def Assign(e) :                 # assign expression e: lhs=rhs
+    h= e[1]
+    if h.typ() == "Sequence":
+        h = h.finalHead()
+    if h.typ() != "Symbol":
+        print "Cannot assign non symbol"
+    else:
+        h.val.addrul(e)         # add rul to symbol
+        
+def AssignRes(e) :              # assign expression e: lhs=rhs
+    Assign(e)
+    return e[2]
+           
+def Clear(e) :                  # clear a symbol
+    if e.typ() == "Symbol":
+        e.val.clrrul()
+        
+def Evaluate(e) :
+    e.evalExpr()
 
-    
+        
 
+        
     
