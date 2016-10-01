@@ -13,6 +13,7 @@
 """
 import parseregex as pre
 import tokenizer
+import re
 
 sys   = None
 relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
@@ -55,11 +56,15 @@ class Expr(object):
         if rem :                            # optional definition of a list output format
             relis = pre.regex(rem)
         self.select={str:self.String,int:self.Integer,float:self.Real,bool:self.boolean}
-    def toExpr(self,x,h=None):
-        if not h:
-            h = self.list
+    def toExpr(self,x,h=None):              # converts to expression
+        if not x:
+            return self.null
+        if re.match(".*expr\..*",str(type(x))):
+            return x
         if type(x) !=list:
             return self.select[type(x)](x)
+        if not h:
+            h = self.list
         return self.Sequence([h]+[self.toExpr(i) for i in x])
     def boolean(self,x):
         if x:
@@ -105,7 +110,7 @@ class Expr(object):
         def match(self,e):
             print "match item :", self.show()," ",e.show()
             return self.val==e.val      
-        def toBase(self,hd) :           # converts expressions into base list & types
+        def toBase(self,hd=None) :      # converts expressions into base list & types
             return self.value()
         def evalExpr(self):             # evaluation is for symbols
             return self
@@ -130,42 +135,43 @@ class Expr(object):
         def typ(self):
             return "String"
         def show(self,rl=None):
-            return '"'+self.val+'"'     # string enclosed on quotes
+            return '"'+self.val+'"'         # string enclosed on quotes
 
     class Symbol(Expression):
         def __init__(self,value):
             self.val = sys.symbol(value)
         def typ(self):
             return "Symbol"
-        def toBase(self,hd) :           # converts expressions into base types
-            return self.val.show()         # symbol returns name (as str)
+        def toBase(self,hd=None) :          # converts expressions into base types
+            return self.val.show()          # symbol returns name (as str)
         def show(self,rl=None):
             return self.val.show()
-        def finalHead(self):            #
+        def finalHead(self):                #
             return self.head()
         def evalExpr(self):
-            if  self.val.bit(rul):      # has values
+            if  self.val.flg.bit(rul):      # has rules defined
                 return self.replace(self.val.rules)
             else:
                 return self
       
     class Native(Expression):
-        def __init__(self,value,argcount,argtype=None):
+        def __init__(self,value,argtype=None):
             self.val = value
-            self.argc= argcount
-            self.argt= argtype
+            self.argt = argtype
         def typ(self):
             return "Native"
         def show(self,rl=None):
             return str(self.val)
-        def evalfunlis(self,argn):
-            return reduce(self.val,argn)
-        def evalfun(self,arg1,arg2=None,arg3=None):
-            if arg2 == None :
-                return self.val(arg1)
-            elif arg3 == None :
-                return self.val(arg1,arg2)
-            return self.val(arg1,arg2,arg3)
+        def evalExpr(self,e):
+            if not self.argt:               # expression function (non typed)
+                return self.val(e)         
+            if e.length() == 1:             # typed function 1 argument
+                res = self.val(e[1].toBase())
+            elif e.length() == 2:           # typed function 2 arguments
+                res = self.val(e[1].toBase(),e[2].toBase())
+            else :                          # typed function 3 or more arguments
+                res = reduce(self.val,[ei.toBase() for ei in e[1:]])
+            return sys.expre.toExpr(res)
 
     class Sequence(list):
         def typ(self):
@@ -191,10 +197,10 @@ class Expr(object):
         def head(self):                 # head of expression: v[0]
             return self[0]
         def finalHead(self):            # searches for symbol head in compound heads
-            if self[0].typ()=="Sequence":
-                return self[0].finalHead()
-            else:
-                return self[0]
+            h = self[0]
+            while h.typ()=="Sequence":
+                h = h[0]
+            return h
         def copy(self,n=0):             # copy, structural up to level n
             if n:
                 return Expr.Sequence([e.copy(n-1) for e in self])
@@ -223,8 +229,8 @@ class Expr(object):
                     self.replpart(self.part(e,p[:-1]),p[-1],c)
                     return None
                 else:
-                    p=[0]
-            if 0 <=p<= self.length():
+                    p=p[0]
+            if 0 <= p <= self.length():
                 self[p]=e.copy(c)       #copy up to n depth
         def replev(self,r,n,m=1,c=-1):      # replaces using rule list r at level n
             if n==0 :
@@ -252,10 +258,16 @@ class Expr(object):
                     return False
             return True
         def evalExpr(self):
+            h = self.finalHead()            # final head is atom
+            if h.typ() == "Native":         # using eval for native functions
+                return h.evalExpr(self)
+            if h.typ() != "Symbol":
+                return self                 # nothing to do 
             for i in range(len(self)):
-                self[i] = self[i].evalExpr()
+                if h.val.evalcond(i):
+                    self[i] = self[i].evalExpr()
             h = self.finalHead()
-            if  h.val.bit("DVals"):         # has values
+            if  h.val.flg.bit(rul):         # has a rule
                 return self.replace(self.val.rules)
             else:
                 return self
