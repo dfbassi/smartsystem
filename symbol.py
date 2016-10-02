@@ -44,6 +44,7 @@ class System(object):
         for vi in  v[2:] :              # initial configuration for symbols
             self.configSym(vi)
         self.expre = expr.Expr(self)    # new Expr object using symbol table
+        sys.expre  = self.expre
         print self.show()
 
     def strToExpr(self,st,hd=None): # converts string into an expression
@@ -230,20 +231,34 @@ class Symbol(object):
             return False
         return i==0 or i==1 and not self.flg.bit(nev1) or i>1 and not self.flg.bit(nevr)
     
-    def addrul(self,e) :                # add a rule for symbol
+    def addrul(self,r) :                # add a rule r for symbol
         if self.flg.bit(prot) :
             print "Assign : symbol ",self.name," protected"
             return None
-        if not self.flg.bit(rul) :      # no rules yet
-            self.rules = [e.replpart(self.expre.rulaft,0)]
-            self.flg.on(rul)       
-        else :                          # rules already
-            self.rules.insert(0,e.replpart(self.expre.rulaft,0))
+        if r[1].typ() == "Symbol":
+            if r[1].val == self:        # own symbol assigned
+                self.rule = r
+                self.flg.on(rul)
+        else :
+            if not self.flg.bit(drul):  # no rules yet
+                self.drules = [r]
+                self.flg.on(drul)       
+            else :                      # rules already
+                self.drules.insert(0,r)
     
     def clrrul(self) :                   # clear all rules
         if not self.flg.bit(prot) :
-            self.rules = []
+            self.rule  = None
+            self.drules= None
             self.flg.off(rul)
+            self.flg.off(drul)
+            
+    def loadrul(self,lrul) :            # loading multiple rules onto symbol
+        prot = self.flg.bit(prot)       # saves original bit
+        for r in lrul:
+            self.
+        
+        
  
     def show(self,t=None):
         if not t:                       # non formatted
@@ -262,12 +277,12 @@ class Symbol(object):
 
 # variables defined flags (1 bit power 2)
 
-[lock,prot,rdprot,temp,stub,func,nev1,nevr,neall,necom,neseq,num,nnum1,nnumr,nnuma,const,lista,assoc,comm,idem,oper,rul,urul,defv]\
-     = [2**i for i in range(24)]
+[lock,prot,rdprot,temp,stub,func,nev1,nevr,neall,necom,neseq,num,nnum1,nnumr,nnuma,const,lista,assoc,comm,idem,oper,rul,drul,urul,defv]\
+     = [2**i for i in range(25)]
 
 class Flag(object):
     names = []
-    fmt = '024b'
+    fmt = '025b'
     def __init__(self,f):
         if type(f) != int:
             f = self.number(f)  # convert flag name(s) into number before

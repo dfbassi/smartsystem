@@ -12,7 +12,7 @@ Created on Wed Sep 14 19:56:51 2016
     
 """
 
-
+expre = None
 
 def ReadStr(flname) :           # ReadStr reads file into a string    
     fl = open(flname)
@@ -26,8 +26,8 @@ def Assign(e) :                 # assign expression e: lhs=rhs
         h = h.finalHead()
     if h.typ() != "Symbol":
         print "Cannot assign non symbol"
-    else:
-        h.val.addrul(e)         # add rul to symbol
+    else:                       # add rul to symbol
+        h.val.addrul(e.replpart(expre.rulaft,0,0))      
         
 def AssignRes(e) :              # assign expression e: lhs=rhs
     Assign(e)
