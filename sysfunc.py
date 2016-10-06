@@ -24,19 +24,25 @@ def Assign(e) :                 # assign expression e: lhs=rhs
     h= e[1]
     if h.typ() == "Sequence":
         h = h.finalHead()
+    print "h : ",h.show()
     if h.typ() != "Symbol":
         print "Cannot assign non symbol"
+    elif h.val.isProtected():
+        print "Cannot assign protected symbol: ",h.val.show()
     else:                       # add rul to symbol
-        h.val.addrul(e.replpart(expre.rulaft,0,0))      
+        e.replpart(expre.rulaft,0,0)
+        h.val.addrul(e)
+    return expre.null
         
 def AssignRes(e) :              # assign expression e: lhs=rhs
     Assign(e)
     return e[2]
            
 def Clear(e) :                  # clear a symbol
-    if e.typ() == "Symbol":
+    if e.typ() == "Symbol" and not e.val.isProtected():
         e.val.clrrul()
-        
+    return expre.null
+       
 def Evaluate(e) :
     e.evalExpr()
 

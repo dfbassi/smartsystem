@@ -230,16 +230,17 @@ class Symbol(object):
         if self.flg.bit(neall) :
             return False
         return i==0 or i==1 and not self.flg.bit(nev1) or i>1 and not self.flg.bit(nevr)
-    
+
+    def isProtected(self):
+        return self.flg.bit(prot)
+        
     def addrul(self,r) :                # add a rule r for symbol
-        if self.flg.bit(prot) :
-            print "Assign : symbol ",self.name," protected"
-            return None
+        print "adrul : ", r.show()
         if r[1].typ() == "Symbol":
             if r[1].val == self:        # own symbol assigned
                 self.rule = r
                 self.flg.on(rul)
-        else :
+        else :                          # is a sequence
             if not self.flg.bit(drul):  # no rules yet
                 self.drules = [r]
                 self.flg.on(drul)       
@@ -247,19 +248,15 @@ class Symbol(object):
                 self.drules.insert(0,r)
     
     def clrrul(self) :                   # clear all rules
-        if not self.flg.bit(prot) :
             self.rule  = None
             self.drules= None
             self.flg.off(rul)
             self.flg.off(drul)
             
     def loadrul(self,lrul) :            # loading multiple rules onto symbol
-        prot = self.flg.bit(prot)       # saves original bit
         for r in lrul:
-            self.
-        
-        
- 
+            self.addrul(r)
+
     def show(self,t=None):
         if not t:                       # non formatted
             return self.name
