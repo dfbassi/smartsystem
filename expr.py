@@ -18,8 +18,8 @@ import re
 sys   = None
 relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
 
-[lock,prot,rdprot,temp,stub,func,nev1,nevr,neall,necom,neseq,num,nnum1,nnumr,nnuma,const,lista,assoc,comm,idem,oper,rul,urul,defv]\
-     = [2**i for i in range(24)]
+[lock,prot,rdprot,temp,stub,func,nev1,nevr,neall,necom,neseq,num,nnum1,nnumr,nnuma,const,lista,assoc,comm,idem,oper,rul,drul,urul,defv]\
+     = [2**i for i in range(25)]
 
 class String(str):
     def show(self,rl=None):
@@ -68,8 +68,8 @@ class Expr(object):
         return self.Sequence([h]+[self.toExpr(i) for i in x])
     def boolean(self,x):
         if x:
-            return sys.true
-        return sys.false
+            return self.true
+        return self.false
                               
     class Expression(object):           # parent class for expressions
         def __init__(self,value):
@@ -146,11 +146,9 @@ class Expr(object):
             return self.val.show()          # symbol returns name (as str)
         def show(self,rl=None):
             return self.val.show()
-        def finalHead(self):                #
-            return self.head()
         def evalExpr(self):
-            if  self.val.flg.bit(rul):      # has rules defined
-                return self.replace(self.val.rules)
+            if  self.val.flg.bit(rul):      # symbol has a rule defined
+                return self.replace(self.val.rule)
             else:
                 return self
       
@@ -231,7 +229,7 @@ class Expr(object):
                 else:
                     p=p[0]
             if 0 <= p <= self.length():
-                self[p]=e.copy(c)       #copy up to n depth
+                self[p]=e.copy(c)           #copy up to n depth
         def replev(self,r,n,m=1,c=-1):      # replaces using rule list r at level n
             if n==0 :
                 return self.replace(r,c)
@@ -244,7 +242,7 @@ class Expr(object):
         def replace(self,rul,c=-1):
             for r in rul:
                 if self.match(r[1]):        # first match returns a copy of rhs of rule
-                    return r[2].copy(c)     # changes full expression
+                    return r[2].copy(c)     # changes whole expression
             for i in range(len(self)):
                 self[i] = self[i].replace(rul,c)
             return self
@@ -258,19 +256,17 @@ class Expr(object):
                     return False
             return True
         def evalExpr(self):
-            h = self.finalHead()            # final head is atom
-            if h.typ() == "Native":         # using eval for native functions
+            h = self.head()
+            if h.typ() == "Native":         # head is a native function
                 return h.evalExpr(self)
-            if h.typ() != "Symbol":
-                return self                 # nothing to do 
-            for i in range(len(self)):
-                if h.val.evalcond(i):
+            notsymbol = h.typ() != "Symbol"
+            for i in range(len(self)):      # evaluation of subexpressions
+                if notsymbol or h.val.evalcond(i):
                     self[i] = self[i].evalExpr()
             h = self.finalHead()
-            if  h.val.flg.bit(rul):         # has a rule
-                return self.replace(self.val.rules)
-            else:
-                return self
+            if h.typ() == "Symbol" and h.val.flg.bit(drul): # head has rules
+                return self.replace(self.val.drules)
+            return self
                
         def pop(self,pos=-1):
             self.pop(pos)
