@@ -12,14 +12,18 @@ Created on Wed Sep 14 19:56:51 2016
     
 """
 
-expre = None
+expre = None                    # pointer to Expr object
+stm   = None                    # pointer to System object
 
 def ReadStr(flname) :           # ReadStr reads file into a string    
     fl = open(flname)
     s = fl.read()
     fl.close()
-    return s                    # returns string read
+    return s                    # returns the string read
     
+def ToExpr(e) :                 # ToExprNE converts a string into expression
+    return stm.strToExpr(e.toBase())
+
 def Assign(e) :                 # assign expression e: lhs=rhs
     h= e[1]
     if h.typ() == "Sequence":

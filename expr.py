@@ -256,17 +256,28 @@ class Expr(object):
                     return False
             return True
         def evalExpr(self):
-            h = self.head()
-            if h.typ() == "Native":         # head is a native function
-                return h.evalExpr(self)
-            notsymbol = h.typ() != "Symbol"
-            for i in range(len(self)):      # evaluation of subexpressions
-                if notsymbol or h.val.evalcond(i):
-                    self[i] = self[i].evalExpr()
-            h = self.finalHead()
-            if h.typ() == "Symbol" and h.val.flg.bit(drul): # head has rules
-                return self.replace(self.val.drules)
-            return self
+            exp = self
+            while True:
+                if exp.head().typ() == "Native":    # head is a native function
+                    return exp.head().evalExpr(self)
+                exp[0] = exp[0].evalExpr()          # head is evaluated first
+                h = exp.head()
+                notsymbol = h.typ() != "Symbol"
+                for i in range(1,len(exp)):         # evaluation of subexpressions
+                    if notsymbol or h.val.evalcond(i):
+                        exp[i] = exp[i].evalExpr()
+                h = exp.finalHead()
+                if h.typ() != "Symbol" or h.val.flg.bit(drul):
+                    break                           # no rules defined for head
+                for r in exp.val.drules:
+                    if exp.match(r[1]):             # first match (lhs)
+                        exp = r[2].copy(-1)         # expression replacement(rhs)
+                        break
+                else:
+                    break                           # no rules match: finish
+                if exp.isAtom():
+                    return exp.evalExpr()
+            return exp
                
         def pop(self,pos=-1):
             self.pop(pos)

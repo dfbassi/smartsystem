@@ -38,13 +38,14 @@ class System(object):
     def config(self,st):            # initializes system structures from string   
         e = self.strToExpr(st,self.expre.list)# initial expression list
         v = e.toBase('List')            # conversion into base list and types
-        self.setContext(v[0])           # initial context (v[0] a string)
+        self.setContext(v[0])           # initial context (v[0]: string with name)
         self.setContextPath([v[0]])
         Flag.names = v[1]               # flag names list initialized, list v[1]
         for vi in  v[2:] :              # initial configuration for symbols
             self.configSym(vi)
-        self.expre = expr.Expr(self)    # new Expr object using symbol table
+        self.expre = expr.Expr(self)    # new Expr object now using symbol table
         sys.expre  = self.expre
+        sys.stm    = self
         print self.show()
 
     def strToExpr(self,st,hd=None): # converts string into an expression
@@ -55,9 +56,6 @@ class System(object):
         while tok.size() :
             exp.append(self.parse.parse(tok))
         return exp
-        
-    def read(self,flname,hd=None):  # reads text from file converts into expression 
-        return self.strToExpr(sys.ReadStr(flname),hd)
             
     def isSymbol(self,name):                # symbol name (including possible context)
         return re.match(r'([a-zA-Z$]\w*`)*[a-zA-Z$]\w*',name)
@@ -304,7 +302,7 @@ class Flag(object):
         return 0
 
 def init(fl):                       # initializes system structures from file
-    s = System()                    # system instatiation
+    s = System()                    # system instantiation
     d = sys.ReadStr(fl)             # reads configuration data from file
     s.config(d)
     return s
