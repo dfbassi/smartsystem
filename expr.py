@@ -49,6 +49,9 @@ class Expr(object):
         self.true = self.Symbol('True')
         self.false= self.Symbol('False')
         self.part = self.Symbol('Part')
+        self.brk  = self.Symbol('Break')
+        self.cont = self.Symbol('Continue')
+        self.ret  = self.Symbol('Return')
         self.rul   = self.Symbol('->')
         self.rulaft= self.Symbol(':>')
         self.asgn  = self.Symbol('=')
@@ -90,6 +93,8 @@ class Expr(object):
             return []
         def depth(self):                # gives depth 
             return 1
+        def isTrue(self):
+            return False
     # Structural functions
         def head(self):                 # gives the head of expression as expr
             return Expr.Symbol(self.typ())
@@ -146,6 +151,8 @@ class Expr(object):
             return self.val.show()          # symbol returns name (as str)
         def show(self,rl=None):
             return self.val.show()
+        def isTrue(self):
+            return sys.expre.true == self   # assuming the usage of expression true
         def evalExpr(self):
             if  self.val.flg.bit(rul):      # symbol has a rule defined
                 return self.replace(self.val.rule)
@@ -278,7 +285,15 @@ class Expr(object):
                 if exp.isAtom():
                     return exp.evalExpr()
             return exp
-               
+        def evalWhile(self):                        # exp = while[cond,body]
+            while self[1].copy(-1).evalExpr().isTrue(): # condition evaluated
+               exp = self[2].copy(-1).evalExpr()        # body evaluated
+               if exp == sys.expre.brk:
+                   break
+               if exp.typ()=="Sequence" and exp[0] == sys.expre.ret:
+                   return exp[1]
+            return sys.expre.null
+
         def pop(self,pos=-1):
             self.pop(pos)
         def prepend(self,value):
