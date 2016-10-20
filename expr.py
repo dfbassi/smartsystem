@@ -268,15 +268,19 @@ class Expr(object):
                 if exp.head().typ() == "Native":    # head is a native function
                     return exp.head().evalExpr(self)
                 exp[0] = exp[0].evalExpr()          # head is evaluated first
-                h = exp.head()
-                notsymbol = h.typ() != "Symbol"
+                symbol = exp[0].typ() == "Symbol"
+                if symbol :
+                    if exp[0].val.name == "While" :
+                        return self.evalWhile()
+                    elif exp[0].val.name == "Compound" :
+                        return self.evalCompound()
                 for i in range(1,len(exp)):         # evaluation of subexpressions
-                    if notsymbol or h.val.evalcond(i):
+                    if not symbol or exp[0].val.evalcond(i):
                         exp[i] = exp[i].evalExpr()
                 h = exp.finalHead()
-                if h.typ() != "Symbol" or h.val.flg.bit(drul):
+                if h.typ() != "Symbol" or not h.val.flg.bit(drul):
                     break                           # no rules defined for head
-                for r in exp.val.drules:
+                for r in h.val.drules:
                     if exp.match(r[1]):             # first match (lhs)
                         exp = r[2].copy(-1)         # expression replacement(rhs)
                         break
@@ -293,7 +297,15 @@ class Expr(object):
                if exp.typ()=="Sequence" and exp[0] == sys.expre.ret:
                    return exp[1]
             return sys.expre.null
-
+        def evalCompound(self):
+            for ei in self[1:] :
+                exp = ei.evalExpr()
+                if exp.typ()=="Sequence" and exp[0].typ() == "Symbol":
+                    hname = exp[0].val.name
+                    if hname in ["Break","Continue","Return"]:
+                        break
+            return exp
+        
         def pop(self,pos=-1):
             self.pop(pos)
         def prepend(self,value):
