@@ -98,6 +98,8 @@ class Expr(object):
     # Structural functions
         def head(self):                 # gives the head of expression as expr
             return Expr.Symbol(self.typ())
+        def headName(self):
+            return self.typ()
         def part(self,p):
             if p==0:
                 return self.head()
@@ -201,6 +203,9 @@ class Expr(object):
     # Structural functions
         def head(self):                 # head of expression: v[0]
             return self[0]
+        def headName(self):
+            if self[0].typ()=="Symbol":
+                return self[0].name
         def finalHead(self):            # searches for symbol head in compound heads
             h = self[0]
             while h.typ()=="Sequence":
@@ -291,19 +296,18 @@ class Expr(object):
             return exp
         def evalWhile(self):                        # exp = while[cond,body]
             while self[1].copy(-1).evalExpr().isTrue(): # condition evaluated
-               exp = self[2].copy(-1).evalExpr()        # body evaluated
-               if exp == sys.expre.brk:
+               exp = self[2].copy(-1).evalExpr()    # body evaluated
+               if exp.headName() == "Break":        # Break[]: end of loop
                    break
-               if exp.typ()=="Sequence" and exp[0] == sys.expre.ret:
+               if exp.headName() == "Return":       # Return[ exp ]
                    return exp[1]
             return sys.expre.null
         def evalCompound(self):
             for ei in self[1:] :
                 exp = ei.evalExpr()
-                if exp.typ()=="Sequence" and exp[0].typ() == "Symbol":
-                    hname = exp[0].val.name
-                    if hname in ["Break","Continue","Return"]:
-                        break
+                hname = exp.headName()
+                if hname in ["Break","Continue","Return"]:
+                    break
             return exp
         
         def pop(self,pos=-1):
