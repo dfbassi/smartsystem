@@ -131,9 +131,10 @@ class Parse(object):
     def parseInfix(self,tk,e,pr):           # e contains possible first expression
         op = self.nextOp("Infix",tk,pr)     # next operator (if priority ≥ pr )
         while op :                              # try parsing second expression
+            print "parseInfix : ",op.show()
             s = self.parseExpr(tk,self.sys.prior(op.val)+1) 
             if s :
-                if e.head().val!=op.val or not self.sys.isAssoc(op.val):
+                if e.head().value()!=op.val or not self.sys.isAssoc(op.val):
                     f = e                       # e becomes first expression     
                     e = self.sys.expre.Sequence([op])# op head of expression sequence
                     e.append(f)                 # adding first expression  
