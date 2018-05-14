@@ -11,23 +11,23 @@
 
 import re
 
-class Queue:                            # A queue is used to process tokens
+class Queue:                        # A queue is used to process tokens
     def __init__(self):
-        self.items = []                 # List as base structure
+        self.items = []             # List as base structure
     def isEmpty(self):
         return self.items == []
     def enqueue(self,item):
-        self.items.insert(0,item)       # Elements enqueued at initial position of list
+        self.items.insert(0,item)   # Elements enqueued at initial position of list
     def dequeue(self):
-        return self.items.pop()         # Elements dequeued at final position of list
+        return self.items.pop()     # Elements dequeued at final position of list
     def size(self):
         return len(self.items)
     def top(self):
         return self.items[-1]
 
 class Token(object):
-    name   = r'[a-zA-Z$][\w`]*'         # Regular expression for different tokens
-    strg   = r'\"[^\"]*\"'
+    name   = r'[a-zA-Z$][\w`]*'     # Regular expression for names
+    strg   = r'\"[^\"]*\"'          # Regular expression for strings
     number = r'\d+\.?\d*'
     oper   = r'->|[-^+*/!;]|:=|\|{1,2}|&{1,2}|<=?|>=?|={1,3}|:>'
     delim  = r'[(){},]|\[{1,2}|\]{1,2}|\n(?!\Z|\n)'
@@ -70,3 +70,10 @@ class Token(object):
         return self.q.size()
     def impliedProd(self):
         return not self.q.isEmpty() and self.val() not in self.nonprod
+    def show(self,form=None):
+        for i in range(self.size())[::-1]:
+            t = self.q.items[i]
+            if form:
+                print str(t[0]),'\t',t[1]
+            else:
+                print t
