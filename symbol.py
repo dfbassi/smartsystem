@@ -19,7 +19,7 @@ import sysfunc as sys
 import re
 import operator as op
 import tokenizer
-import parser
+import symparser as parser
 import expr
 
 title="SMARTS 2.0\nSymbolic Manipulation and Replacement Transformation System"+\
