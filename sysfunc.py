@@ -22,7 +22,7 @@ def ReadStr(flname) :           # ReadStr reads file into a string
     return s                    # returns the string read
     
 def ToExpr(e) :                 # ToExprNE converts a string into expression
-    return stm.strToExpr(e.toBase())
+    return stm.strToExpr(e)
 
 def Assign(e) :                 # assign expression e: lhs=rhs
     h= e[1]
