@@ -16,22 +16,28 @@ import tokenizer
 import re
 
 sys   = None
-relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression list   
+relis = pre.regex(r"$\[($(,$)*)?\]")    # regular expression for lists   
 
-[lock,prot,rdprot,temp,stub,func,nev1,nevr,neall,necom,neseq,num,nnum1,nnumr,nnuma,const,lista,assoc,comm,idem,oper,rul,drul,urul,defv]\
+# Internal variables for flags
+[lock,prot,rdprot,temp,stub,func,nev1,nevr,neall,necom,neseq,num,nnum1,nnumr,\
+ nnuma,const,lista,assoc,comm,idem,oper,rul,drul,urul,defv]\
      = [2**i for i in range(25)]
+
+# Internal symbol and corresponding language name
+name = {'list':'List','null':'Null','true':'True','false':'False','part':'Part',\
+        'break':'Break','cont':'Continue', 'ret':'Return'}
 
 class String(str):
     def show(self,rl=None):
         return str(self)
         
-class System(object):
-    def __init__(self,exp):
+class System(object):               # Temporary class definition
+    def __init__(self,exp):             # 
         self.expre = exp
         self.token = tokenizer.Token
     def symbol(self,name):              # name (as str) converted into string class
         return String(name)
-    def isOperator(v,typ=None):
+    def isOperator(v,typ=None):         # No operators are allowed
         print "isOperator : ", v
         return False
    
@@ -89,7 +95,7 @@ class Expr(object):
             return True
         def length(self):               # gives length of expression (default 0)
             return 0
-        def dim(self):                  # givess length of expression (default [])
+        def dim(self):                  # givess dimensions of expression (default [])
             return []
         def depth(self):                # gives depth 
             return 1
@@ -142,15 +148,15 @@ class Expr(object):
         def typ(self):
             return "String"
         def show(self,rl=None):
-            return '"'+self.val+'"'         # string enclosed on quotes
+            return '"'+self.val+'"'     # string enclosed by quotes
 
     class Symbol(Expression):
         def __init__(self,value):
             self.val = sys.symbol(value)
         def typ(self):
             return "Symbol"
-        def toBase(self,hd=None) :          # converts expressions into base types
-            return self.val.show()          # symbol returns name (as str)
+        def toBase(self,hd=None) :      # converts expressions into base types
+            return self.val.show()      # symbol returns name (as str)
         def show(self,rl=None):
             return self.val.show()
         def isTrue(self):
@@ -264,7 +270,7 @@ class Expr(object):
             if e.isAtom() or self.length() != e.length():  
                 return False                # length must be the same
             for i in range(len(self)):
-                if not self[i].match(e.val[i]):
+                if not self[i].match(e[i]):
                     return False
             return True
         def evalExpr(self):
